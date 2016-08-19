@@ -20,3 +20,4 @@ lexer.add_syntax :class do |lex|
 end
 
 puts lexer.expr().to_s
+puts lexer.expr().to_s

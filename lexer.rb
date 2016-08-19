@@ -106,7 +106,11 @@ class Lexer
         @syntaxes[name.to_s] = block
     end
     def call_syntax(name)
+        self.expect(name)
         return @syntaxes[name.to_s].call(self)
+    end
+    def method_missing(name)
+        return self.call_syntax(name.to_s)
     end
     def skip_spaces()
         while true do
