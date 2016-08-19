@@ -135,6 +135,36 @@ class Function
     end
 end
 
+class Operator
+    attr_accessor :op
+    def initialize(op)
+        @op = op
+    end
+    def to_s()
+        return @op
+    end
+end
+
+class ExprArray
+    attr_accessor :exprs
+    def initialize(exprs)
+        @exprs = exprs
+    end
+    def self.empty()
+        @exprs = []
+    end
+    def push(expr)
+        @exprs.push(expr)
+    end
+    def to_s()
+        s = ""
+        for e in exprs
+            s += e.to_s()
+        end
+        return s
+    end
+end
+
 class Toplevel
 end
 
@@ -305,6 +335,22 @@ class Lexer
             next false
         end
     end
+    def operator()
+        self.store do
+            opdata = nil
+            for op in $operators
+                if self.expect(op)
+                    opdata = op
+                    break
+                end
+            end
+            if opdata != nil
+                next Operator.new(opdata)
+            else
+                next false
+            end
+        end
+    end
     def fcall()
         self.store do
             name = self.ident()
@@ -373,13 +419,18 @@ class Lexer
         end
         return false
     end
-    def expr()
+    def primexpr()
         res = self.syntax()
         if res
             return res
         end
 
         res = self.number()
+        if res
+            return res
+        end
+
+        res = self.operator()
         if res
             return res
         end
@@ -400,6 +451,28 @@ class Lexer
         end
 
         return false
+    end
+    def expr()
+        exprarr = []
+        exprarr.push(self.primexpr())
+        while true
+            op = self.operator()
+            if !op
+                break
+            end
+            exprarr.push(op)
+
+            e = self.primexpr()
+            if !e
+                break
+            end
+            exprarr.push(e)
+        end
+        if exprarr.size == 1
+            return exprarr[0]
+        else
+            return ExprArray.new(exprarr)
+        end
     end
     def global()
         self.store do
