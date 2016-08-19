@@ -8,11 +8,15 @@ def is_num?(s)
 end
 
 def args_to_str(args)
-    s = args[0].to_s
-    for arg in args[1..-1]
-        s += "," + arg.to_s
+    if args == []
+        return ""
+    else
+        s = args[0].to_s
+        for arg in args[1..-1]
+            s += "," + arg.to_s
+        end
+        return s
     end
-    return s
 end
 
 $operators = [
@@ -93,7 +97,11 @@ class Variable
         @value = value
     end
     def to_s()
-        return "#{@type} #{@name} = #{@value.to_s}"
+        if @value
+            return "#{@type} #{@name} = #{@value.to_s}"
+        else
+            return "#{@type} #{@name}"
+        end
     end
 end
 
@@ -104,6 +112,19 @@ class Global
     end
     def to_s()
         return "#{@decl.to_s};"
+    end
+end
+
+class Function
+    attr_accessor :ret, :name, :args, :body
+    def initialize(ret, name, args, body)
+        @ret = ret
+        @name = name
+        @args = args
+        @body = body
+    end
+    def to_s()
+        return "#{@ret} #{@name}(#{args_to_str(@args)}) { #{@body} }"
     end
 end
 
@@ -186,7 +207,6 @@ class Lexer
                 break
             end
         end
-        self.save_pos()
     end
     def special?()
         for token in $special_tokens
@@ -290,6 +310,9 @@ class Lexer
             end
 
             args = []
+            if self.expect(")")
+                next FCall.new(name, args)
+            end
             begin
                 args.push(self.expr())
             end while self.expect(",")
@@ -383,8 +406,55 @@ class Lexer
             next Global.new(var)
         end
     end
+    def function()
+        self.store do
+            ret = self.ident()
+            if !ret
+                next false
+            end
+
+            name = self.ident()
+            if !name
+                next false
+            end
+
+            if !self.expect("(")
+                next false
+            end
+
+            args = []
+            if !self.expect(")")
+                begin
+                    type = self.ident()
+                    argname = self.ident()
+                    args.push(Variable.new(type, argname, nil))
+                end while self.expect(",")
+
+                if !self.expect(")")
+                    next false
+                end
+            end
+
+            if !self.expect("{")
+                next false
+            end
+
+            body = ""
+
+            if !self.expect("}")
+                next false
+            end
+
+            next Function.new(ret, name, args, body)
+        end
+    end
     def declare()
         res = self.syntax()
+        if res
+            return res
+        end
+
+        res = self.function()
         if res
             return res
         end
