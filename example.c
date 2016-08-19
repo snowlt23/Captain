@@ -5,4 +5,6 @@ int a = 1;
 
 class Actor
 
-int main() {}
+int main() {
+    add(1, 2.0);
+}

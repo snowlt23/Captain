@@ -123,8 +123,15 @@ class Function
         @args = args
         @body = body
     end
+    def body_to_s()
+        s = ""
+        for e in body
+            s += e.to_s + ";"
+        end
+        return s
+    end
     def to_s()
-        return "#{@ret} #{@name}(#{args_to_str(@args)}) { #{@body} }"
+        return "#{@ret} #{@name}(#{args_to_str(@args)}) { #{self.body_to_s} }"
     end
 end
 
@@ -406,6 +413,22 @@ class Lexer
             next Global.new(var)
         end
     end
+    def body()
+        self.store do
+            exprs = []
+            while true
+                e = self.expr()
+                if !e
+                    break
+                end
+                if !self.expect(";")
+                    break
+                end
+                exprs.push(e)
+            end
+            next exprs
+        end
+    end
     def function()
         self.store do
             ret = self.ident()
@@ -439,7 +462,7 @@ class Lexer
                 next false
             end
 
-            body = ""
+            body = self.body()
 
             if !self.expect("}")
                 next false
