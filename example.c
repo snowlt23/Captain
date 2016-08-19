@@ -5,8 +5,13 @@ int a = 1;
 
 class Actor
 
+int add(int a, int b) {
+    return a + b;
+}
+
 int main() {
     int a = 1;
-    add(1, 2.0 + (1.0 - 1.0));
+    int b = 2.0;
+    a += add(1, 2 + (1 - 1));
     return a;
 }
