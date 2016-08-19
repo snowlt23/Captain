@@ -243,6 +243,7 @@ class Lexer
                 while true
                     s = self.ahead(1)
                     if s == "\n"
+                        @pos += 1
                         break
                     end
                     @pos += 1
@@ -252,6 +253,7 @@ class Lexer
                 while true
                     s = self.ahead(2)
                     if s == "*/"
+                        @pos += 2
                         break
                     end
                     @pos += 1
