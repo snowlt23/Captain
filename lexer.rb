@@ -15,6 +15,45 @@ def args_to_str(args)
     return s
 end
 
+$operators = [
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%=",
+    "<<=",
+    ">>=",
+    "&=",
+    "^=",
+    "|=",
+    "++",
+    "--",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    ".",
+    "->",
+    "==",
+    "!=",
+    "=",
+    "&&",
+    "||",
+    "&",
+    "|",
+    "^",
+    "~",
+    "<<",
+    ">>",
+    "<=",
+    ">=",
+    "<",
+    ">",
+    "?",
+    "!"
+]
+
 $special_tokens = [
     "{",
     "}",
@@ -25,16 +64,10 @@ $special_tokens = [
     ",",
     ";",
     ":",
-    "=",
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
     " ",
     "\n",
     "\t"
-]
+] + $operators
 
 class FCall
     attr_accessor :name, :args
@@ -67,6 +100,13 @@ class Lexer
         @src = src
         @pos = 0
         @save = 0
+        @syntaxes = Hash.new()
+    end
+    def add_syntax(name, &block)
+        @syntaxes[name.to_s] = block
+    end
+    def call_syntax(name)
+        return @syntaxes[name.to_s].call(self)
     end
     def skip_spaces()
         while true do
@@ -236,6 +276,21 @@ class Lexer
     # def struct()
     # end
     def expr()
+        @syntaxes.each do |name, f|
+            self.store do
+                id = self.ident()
+                if !id
+                    next false
+                end
+
+                if id == name
+                    return f.call(self)
+                else
+                    next false
+                end
+            end
+        end
+
         res = self.number()
         if res
             return res
