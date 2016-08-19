@@ -167,11 +167,7 @@ class ExprArray
         @exprs.push(expr)
     end
     def to_s()
-        s = ""
-        for e in exprs
-            s += e.to_s()
-        end
-        return s
+        return exprs.join(" ")
     end
 end
 
@@ -284,6 +280,13 @@ class Lexer
     end
     def ident() # primitive
         self.skip_spaces()
+        if self.special?()
+            return false
+        end
+        first = self.ahead(1)
+        if !first || is_num?(first)
+            return false
+        end
         s = ""
         while !self.special?()
             c = self.get(1)
@@ -503,6 +506,11 @@ class Lexer
             return res
         end
 
+        res = self.operator()
+        if res
+            return res
+        end
+
         res = self.parenexpr()
         if res
             return res
@@ -514,12 +522,6 @@ class Lexer
         exprarr = []
         exprarr.push(self.primexpr())
         while true
-            op = self.operator()
-            if !op
-                break
-            end
-            exprarr.push(op)
-
             e = self.primexpr()
             if !e
                 break

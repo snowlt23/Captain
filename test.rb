@@ -19,7 +19,10 @@ lexer.add_syntax :class do |lex|
     ClassObject.new(name)
 end
 
-puts lexer.toplevel()
+parsed = lexer.toplevel()
+print parsed
+print "\n\n"
+puts parsed
 
 # puts lexer.expr().to_s
 # puts lexer.expr().to_s
