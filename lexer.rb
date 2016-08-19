@@ -25,6 +25,12 @@ $special_tokens = [
     ",",
     ";",
     ":",
+    "=",
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
     " ",
     "\n",
     "\t"
@@ -41,10 +47,23 @@ class FCall
     end
 end
 
+class Variable
+    attr_accessor :type, :name, :value
+    def initialize(type, name, value)
+        @type = type
+        @name = name
+        @value = value
+    end
+    def to_s()
+        return "#{@type} #{@name} = #{@value.to_s}"
+    end
+end
+
 class Lexer
     def initialize(src)
         @src = src
         @pos = 0
+        @save = 0
     end
     def skip_spaces()
         while true do
@@ -60,17 +79,13 @@ class Lexer
         @pos += len
         return s
     end
-    def expect(s)
-        self.skip_spaces()
-        target = @src[@pos, s.length]
-        if target == s
-            @pos += s.length
-            return true
-        else
-            return false
-        end
+    def save_pos()
+        @save = @pos
     end
-    def next_if(s)
+    def load_pos()
+        @pos = @save
+    end
+    def expect(s) # primitive
         self.skip_spaces()
         target = @src[@pos, s.length]
         if target == s
@@ -89,7 +104,7 @@ class Lexer
         end
         return false
     end
-    def ident()
+    def ident() # primitive
         self.skip_spaces()
         s = ""
         while !self.special?()
@@ -102,7 +117,7 @@ class Lexer
             return s
         end
     end
-    def integer()
+    def integer() # primitive
         self.skip_spaces()
         s = ""
         while true
@@ -121,28 +136,57 @@ class Lexer
         end
     end
     def fcall()
+        self.save_pos()
+
         name = self.ident()
         if !name
+            self.load_pos()
             return false
         end
+
         if !self.expect("(")
+            self.load_pos()
             return false
         end
+
         args = []
         begin
             args.push(self.expr())
-        end while self.next_if(",")
+        end while self.expect(",")
+
         if !self.expect(")")
+            self.load_pos()
             return false
         end
+
         return FCall.new(name, args)
     end
-    # def variable()
-    #     typ = self.ident()
-    #     name = self.ident()
-    #     self.expect("=")
-    #     expr = self.expr()
-    # end
+    def variable()
+        self.save_pos()
+
+        type = self.ident()
+        if !type
+            self.load_pos()
+            return false
+        end
+
+        name = self.ident()
+        if !name
+            self.load_pos()
+            return false
+        end
+
+        value = nil
+        if self.expect("=")
+            value = self.expr()
+            if !value
+                self.load_pos()
+                return false
+            end
+        end
+
+        return Variable.new(type, name, value)
+    end
     # def struct()
     # end
     def expr()
@@ -152,6 +196,11 @@ class Lexer
         end
 
         res = self.fcall()
+        if res
+            return res
+        end
+
+        res = self.variable()
         if res
             return res
         end
