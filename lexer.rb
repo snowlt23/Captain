@@ -78,6 +78,16 @@ $separates = [
 
 $special_tokens = $separates + $spaces + $operators
 
+class CString
+    attr_accessor :str
+    def initialize(str)
+        @str = str
+    end
+    def to_s()
+        return "\"#{@str}\""
+    end
+end
+
 class FCall
     attr_accessor :name, :args
     def initialize(name, args)
@@ -345,6 +355,34 @@ class Lexer
             next false
         end
     end
+    def string()
+        self.store do
+            self.skip_spaces()
+
+            if !self.expect("\"")
+                next false
+            end
+
+            s = ""
+            escape_flag = false
+            while true
+                c = self.ahead(1)
+                if c == "\"" && escape_flag
+                    s += "\""
+                elsif c == "\""
+                    @pos += 1
+                    break
+                elsif c == "\\"
+                    escape_flag = true
+                else
+                    s += c
+                    escape_flag = false
+                end
+                @pos += 1
+            end
+            next CString.new(s)
+        end
+    end
     def operator()
         self.store do
             opdata = nil
@@ -436,6 +474,11 @@ class Lexer
         end
 
         res = self.number()
+        if res
+            return res
+        end
+
+        res = self.string()
         if res
             return res
         end

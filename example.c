@@ -13,5 +13,6 @@ int main() {
     int a = 1;
     int b = 2.0;
     a += add(1, 2 + (1 - 1));
-    return a;
+    printf("%d\n", a);
+    return 0;
 }
