@@ -59,6 +59,9 @@ class Variable
     end
 end
 
+class Toplevel
+end
+
 class Lexer
     def initialize(src)
         @src = src
@@ -84,6 +87,16 @@ class Lexer
     end
     def load_pos()
         @pos = @save
+    end
+    def store(&block)
+        self.save_pos()
+        ret = block.call()
+        if ret == false
+            self.load_pos()
+            return false
+        else
+            return ret
+        end
     end
     def expect(s) # primitive
         self.skip_spaces()
@@ -136,96 +149,89 @@ class Lexer
         end
     end
     def float() # primitive
-        self.save_pos()
-        self.skip_spaces()
-        s = ""
-        dot_flag = false
-        while true
-            c = @src[@pos]
-            if is_num?(c)
-                @pos += 1
-                s += c
-            elsif c == "."
-                dot_flag = true
-                @pos += 1
-                s += c
-            else
-                break
+        self.store do
+            self.skip_spaces()
+            s = ""
+            dot_flag = false
+            while true
+                c = @src[@pos]
+                if is_num?(c)
+                    @pos += 1
+                    s += c
+                elsif c == "."
+                    dot_flag = true
+                    @pos += 1
+                    s += c
+                else
+                    break
+                end
             end
-        end
-        if s == "" || dot_flag == false
-            self.load_pos()
-            return false
-        else
-            return Float(s)
+            if s == "" || dot_flag == false
+                next false
+            else
+                next Float(s)
+            end
         end
     end
     def number()
-        self.save_pos()
+        self.store do
+            res = self.float()
+            if res
+                next res
+            end
 
-        res = self.float()
-        if res
-            return res
+            res = self.integer()
+            if res
+                next res
+            end
+            next false
         end
-
-        res = self.integer()
-        if res
-            return res
-        end
-
-        return false
     end
     def fcall()
-        self.save_pos()
+        self.store do
+            name = self.ident()
+            if !name
+                next false
+            end
 
-        name = self.ident()
-        if !name
-            self.load_pos()
-            return false
+            if !self.expect("(")
+                next false
+            end
+
+            args = []
+            begin
+                args.push(self.expr())
+            end while self.expect(",")
+
+            if !self.expect(")")
+                next false
+            end
+
+            next FCall.new(name, args)
         end
-
-        if !self.expect("(")
-            self.load_pos()
-            return false
-        end
-
-        args = []
-        begin
-            args.push(self.expr())
-        end while self.expect(",")
-
-        if !self.expect(")")
-            self.load_pos()
-            return false
-        end
-
-        return FCall.new(name, args)
     end
     def variable()
-        self.save_pos()
-
-        type = self.ident()
-        if !type
-            self.load_pos()
-            return false
-        end
-
-        name = self.ident()
-        if !name
-            self.load_pos()
-            return false
-        end
-
-        value = nil
-        if self.expect("=")
-            value = self.expr()
-            if !value
-                self.load_pos()
-                return false
+        self.store do
+            type = self.ident()
+            if !type
+                next false
             end
-        end
 
-        return Variable.new(type, name, value)
+            name = self.ident()
+            if !name
+                next false
+            end
+
+            value = nil
+            if self.expect("=")
+                value = self.expr()
+                if !value
+                    next false
+                end
+            end
+
+            next Variable.new(type, name, value)
+        end
     end
     # def struct()
     # end
