@@ -1,6 +1,4 @@
 
-require './monad'
-
 def is_num?(s)
     if "0".ord <= s.ord && s.ord <= "9".ord
         return true
