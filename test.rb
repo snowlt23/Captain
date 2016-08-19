@@ -29,10 +29,26 @@ class AnnotateObject
     end
 end
 
+$test_names = []
+
 lexer.add_syntax "@" do |lex|
     name = lex.ident()
     expr = lex.function()
+    if name == "test"
+        $test_names.push(expr.name)
+    end
     AnnotateObject.new(name, expr)
+end
+
+lexer.add_syntax "generate_test" do |lex|
+    lex.expect("(")
+    lex.expect(")")
+    lex.expect(";")
+    calls = ""
+    for name in $test_names
+        calls += "#{name}();"
+    end
+    "void generated_test() { #{calls} }"
 end
 
 parsed = lexer.toplevel()

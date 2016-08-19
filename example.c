@@ -6,8 +6,8 @@ int a = 1;
 class Actor
 
 @test
-int sub(int a, int b) {
-    return a - b;
+void assert_test() {
+    ASSERT_EQ(a, b);
 }
 
 int add(int a, int b) {
@@ -21,3 +21,5 @@ int main() {
     printf("%d\n", a);
     return 0;
 }
+
+generate_test();
