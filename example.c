@@ -1,6 +1,6 @@
 
-int a = 1
+int a = 1;
 
-add(1, 2.0)
+// add(1, 2.0)
 
 class Actor

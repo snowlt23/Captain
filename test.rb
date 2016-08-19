@@ -2,8 +2,8 @@
 require './lexer'
 
 lexer = Lexer.new(File.read("example.c"))
-puts lexer.expr().to_s
-puts lexer.expr().to_s
+# puts lexer.expr().to_s
+# puts lexer.expr().to_s
 
 class ClassObject
     def initialize(name)
@@ -19,5 +19,7 @@ lexer.add_syntax :class do |lex|
     ClassObject.new(name)
 end
 
-puts lexer.expr().to_s
-puts lexer.expr().to_s
+puts lexer.toplevel()
+
+# puts lexer.expr().to_s
+# puts lexer.expr().to_s

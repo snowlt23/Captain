@@ -54,7 +54,13 @@ $operators = [
     "!"
 ]
 
-$special_tokens = [
+$spaces = [
+    " ",
+    "\n",
+    "\t"
+]
+
+$separates = [
     "{",
     "}",
     "[",
@@ -63,11 +69,10 @@ $special_tokens = [
     ")",
     ",",
     ";",
-    ":",
-    " ",
-    "\n",
-    "\t"
-] + $operators
+    ":"
+]
+
+$special_tokens = $separates + $spaces + $operators
 
 class FCall
     attr_accessor :name, :args
@@ -92,6 +97,16 @@ class Variable
     end
 end
 
+class Global
+    attr_accessor :decl
+    def initialize(decl)
+        @decl = decl
+    end
+    def to_s()
+        return "#{@decl.to_s};"
+    end
+end
+
 class Toplevel
 end
 
@@ -112,19 +127,21 @@ class Lexer
     def method_missing(name)
         return self.call_syntax(name.to_s)
     end
-    def skip_spaces()
-        while true do
-            if  @src[@pos] == " " || @src[@pos] == "\n" || @src[@pos] == "\t" then
-                @pos += 1
-            else
-                break
-            end
+    def get(len)
+        if @src.length < @pos + len then
+            return false
+        else
+            s = @src[@pos, len]
+            @pos += len
+            return s
         end
     end
-    def get(len)
-        s = @src[@pos, len]
-        @pos += len
-        return s
+    def ahead(len)
+        if @src.length < @pos + len then
+            return false
+        else
+            return @src[@pos, len]
+        end
     end
     def save_pos()
         @save = @pos
@@ -142,31 +159,61 @@ class Lexer
             return ret
         end
     end
+    def skip_spaces()
+        while true do
+            c = self.ahead(1)
+            if  c == " " || c == "\n" || c == "\t"
+                @pos += 1
+            elsif self.ahead(2) == "//"
+                @pos += 2
+                while true
+                    s = self.ahead(1)
+                    if s == "\n"
+                        break
+                    end
+                    @pos += 1
+                end
+            elsif self.ahead(2) == "/*"
+                @pos += 2
+                while true
+                    s = self.ahead(2)
+                    if s == "*/"
+                        break
+                    end
+                    @pos += 1
+                end
+            else
+                break
+            end
+        end
+        self.save_pos()
+    end
+    def special?()
+        for token in $special_tokens
+            if self.ahead(token.length) == token
+                return true
+            end
+        end
+        return false
+    end
     def expect(s) # primitive
         self.skip_spaces()
-        target = @src[@pos, s.length]
-        if target == s
+        if self.ahead(s.length) == s
             @pos += s.length
             return true
         else
             return false
         end
     end
-    def special?()
-        for token in $special_tokens
-            target = @src[@pos, token.length]
-            if target == token
-                return true
-            end
-        end
-        return false
-    end
     def ident() # primitive
         self.skip_spaces()
         s = ""
         while !self.special?()
-            s += @src[@pos]
-            @pos += 1
+            c = self.get(1)
+            if !c
+                break
+            end
+            s += c
         end
         if s == ""
             return false
@@ -178,7 +225,7 @@ class Lexer
         self.skip_spaces()
         s = ""
         while true
-            c = @src[@pos]
+            c = self.ahead(1)
             if is_num?(c)
                 @pos += 1
                 s += c
@@ -198,7 +245,7 @@ class Lexer
             s = ""
             dot_flag = false
             while true
-                c = @src[@pos]
+                c = self.ahead(1)
                 if is_num?(c)
                     @pos += 1
                     s += c
@@ -279,7 +326,7 @@ class Lexer
     end
     # def struct()
     # end
-    def expr()
+    def syntax()
         @syntaxes.each do |name, f|
             self.store do
                 id = self.ident()
@@ -293,6 +340,13 @@ class Lexer
                     next false
                 end
             end
+        end
+        return false
+    end
+    def expr()
+        res = self.syntax()
+        if res
+            return res
         end
 
         res = self.number()
@@ -317,6 +371,40 @@ class Lexer
 
         return false
     end
-    # def toplevel()
-    # end
+    def global()
+        self.store do
+            var = self.variable()
+            if !var
+                next false
+            end
+            if !self.expect(";")
+                next false
+            end
+            next Global.new(var)
+        end
+    end
+    def declare()
+        res = self.syntax()
+        if res
+            return res
+        end
+
+        res = self.global()
+        if res
+            return res
+        end
+
+        return false
+    end
+    def toplevel()
+        declares = []
+        while true
+            res = self.declare()
+            if !res
+                break
+            end
+            declares.push(res)
+        end
+        return declares
+    end
 end
