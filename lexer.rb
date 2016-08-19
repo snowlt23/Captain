@@ -135,6 +135,46 @@ class Lexer
             return Integer(s)
         end
     end
+    def float() # primitive
+        self.save_pos()
+        self.skip_spaces()
+        s = ""
+        dot_flag = false
+        while true
+            c = @src[@pos]
+            if is_num?(c)
+                @pos += 1
+                s += c
+            elsif c == "."
+                dot_flag = true
+                @pos += 1
+                s += c
+            else
+                break
+            end
+        end
+        if s == "" || dot_flag == false
+            self.load_pos()
+            return false
+        else
+            return Float(s)
+        end
+    end
+    def number()
+        self.save_pos()
+
+        res = self.float()
+        if res
+            return res
+        end
+
+        res = self.integer()
+        if res
+            return res
+        end
+
+        return false
+    end
     def fcall()
         self.save_pos()
 
@@ -190,7 +230,7 @@ class Lexer
     # def struct()
     # end
     def expr()
-        res = self.integer()
+        res = self.number()
         if res
             return res
         end
