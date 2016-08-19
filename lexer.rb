@@ -456,12 +456,7 @@ class Lexer
     def syntax()
         @syntaxes.each do |name, f|
             self.store do
-                id = self.ident()
-                if !id
-                    next false
-                end
-
-                if id == name
+                if self.expect(name)
                     return f.call(self)
                 else
                     next false

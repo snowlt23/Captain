@@ -5,6 +5,11 @@ int a = 1;
 
 class Actor
 
+@test
+int sub(int a, int b) {
+    return a - b;
+}
+
 int add(int a, int b) {
     return a + b;
 }

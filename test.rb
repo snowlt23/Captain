@@ -19,6 +19,22 @@ lexer.add_syntax :class do |lex|
     ClassObject.new(name)
 end
 
+class AnnotateObject
+    def initialize(name, expr)
+        @name = name
+        @expr = expr
+    end
+    def to_s()
+        return @expr.to_s
+    end
+end
+
+lexer.add_syntax "@" do |lex|
+    name = lex.ident()
+    expr = lex.function()
+    AnnotateObject.new(name, expr)
+end
+
 parsed = lexer.toplevel()
 print parsed
 print "\n\n"
