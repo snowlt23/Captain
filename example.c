@@ -6,5 +6,5 @@ int a = 1;
 class Actor
 
 int main() {
-    add(1, 2.0 - 1.0);
+    add(1, 2.0 + (1.0 - 1.0));
 }

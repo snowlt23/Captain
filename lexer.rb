@@ -165,6 +165,16 @@ class ExprArray
     end
 end
 
+class Paren
+    attr_accessor :expr
+    def initialize(expr)
+        @expr = expr
+    end
+    def to_s()
+        return "(#{@expr.to_s})"
+    end
+end
+
 class Toplevel
 end
 
@@ -208,10 +218,10 @@ class Lexer
         @pos = @save
     end
     def store(&block)
-        self.save_pos()
+        pos = @pos
         ret = block.call()
         if ret == false
-            self.load_pos()
+            @pos = pos
             return false
         else
             return ret
@@ -450,9 +460,14 @@ class Lexer
             return res
         end
 
+        res = self.parenexpr()
+        if res
+            return res
+        end
+
         return false
     end
-    def expr()
+    def opexpr()
         exprarr = []
         exprarr.push(self.primexpr())
         while true
@@ -472,6 +487,30 @@ class Lexer
             return exprarr[0]
         else
             return ExprArray.new(exprarr)
+        end
+    end
+    def parenexpr()
+        self.store do
+            if self.expect("(")
+                e = self.opexpr()
+                if !e
+                    next false
+                end
+                if !self.expect(")")
+                    next false
+                end
+                next Paren.new(e)
+            else
+                next false
+            end
+        end
+    end
+    def expr()
+        pe = parenexpr()
+        if pe
+            return pe
+        else
+            return self.opexpr()
         end
     end
     def global()
