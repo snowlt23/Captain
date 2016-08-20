@@ -1,0 +1,175 @@
+
+module PEG
+    # type: success, failure, garbage
+    class Result
+        attr_accessor :type, :value, :pos
+        def initialize(type, value, pos)
+            @type = type
+            @value = value
+            @pos = pos
+        end
+        def self.success(value, pos)
+            return Result.new("success", value, pos)
+        end
+        def success?
+            if @type == "success"
+                return true
+            else
+                return false
+            end
+        end
+        def self.failure
+            return Result.new("failure", nil, nil)
+        end
+        def failure?
+            if @type == "failure"
+                return true
+            else
+                return false
+            end
+        end
+        def self.garbage(pos)
+            return Result.new("garbage", nil, pos)
+        end
+        def garbage?
+            if @type == "garbage"
+                return true
+            else
+                return false
+            end
+        end
+        def /(that)
+            if self.success?
+                return self
+            elsif that.success?
+                return that
+            else
+                return Result.failure
+            end
+        end
+        def >>(that)
+            if self.success?
+                if that.success?
+                    if self.value.instance_of?(Array)
+                        Result.success(self.value + [that.value], that.pos)
+                    else
+                        Result.success([self.value, that.value], that.pos)
+                    end
+                elsif that.failure?
+                    Result.failure
+                elsif that.garbage?
+                    Result.success(self.value, that.pos)
+                end
+            elsif self.failure?
+                Result.failure
+            elsif self.garbage?
+                if that.success?
+                    that
+                elsif that.failure?
+                    Result.failure
+                elsif that.garbage?
+                    that
+                end
+            end
+        end
+        def map(&block)
+            if self.success?
+                return Result.success(block.call(@value), @pos)
+            else
+                return self
+            end
+        end
+    end
+    class Parser
+        def initialize(&f)
+            @f = f
+        end
+        def parse(input, pos)
+            @f.call(input, pos)
+        end
+        def exec(input)
+            self.parse(input, 0)
+        end
+        def /(that)
+            Parser.new do |input, pos|
+                self.parse(input, pos) / that.parse(input, pos)
+            end
+        end
+        def >>(that)
+            Parser.new do |input, pos|
+                left = self.parse(input, pos)
+                if left.failure?
+                    Result.failure
+                else
+                    right = that.parse(input, left.pos)
+                    left >> right
+                end
+            end
+        end
+        def *
+            Parser.new do |input, pos|
+                ret = []
+                while true
+                    res = self.parse(input, pos)
+                    if res.success?
+                        ret << res.value
+                        pos = res.pos
+                    else
+                        break
+                    end
+                end
+                Result.success(ret, pos)
+            end
+        end
+        def +
+            (self >> self.*).map do |parsed|
+                parsed[1].insert(0, parsed[0])
+            end
+        end
+        def garbage
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                if res.success?
+                    Result.garbage(res.pos)
+                elsif res.failure?
+                    Result.failure
+                elsif res.garbage?
+                    res
+                end
+            end
+        end
+        def map(&block)
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                if res.success?
+                    Result.success(block.call(res.value), res.pos)
+                elsif res.failure?
+                    Result.failure
+                elsif res.garbage?
+                    res
+                end
+            end
+        end
+        def except()
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                if res.success?
+                    res
+                elsif res.failure?
+                    raise "TODO: error!"
+                elsif res.garbage?
+                    res
+                end
+            end
+        end
+    end
+    def str(s)
+        Parser.new do |input, pos|
+            if input[pos, s.length] == s
+                Result.success(s, pos + s.length)
+            else
+                Result.failure
+            end
+        end
+    end
+end
