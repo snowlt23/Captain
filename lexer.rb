@@ -202,6 +202,31 @@ class CIf
     end
 end
 
+class CFor
+    attr_accessor :init, :cond, :update, :body
+    def initialize(init, cond, update, body)
+        @init = init
+        @cond = cond
+        @update = update
+        @body = body
+    end
+    def to_s()
+        i = @init
+        c = @cond
+        u = @update
+        if !i
+            i = ""
+        end
+        if !c
+            c = ""
+        end
+        if !u
+            u = ""
+        end
+        return "for (#{i};#{c};#{u}) { #{body_to_s(@body)} }"
+    end
+end
+
 class CWhile
     attr_accessor :cond, :body
     def initialize(cond, body)
@@ -653,8 +678,51 @@ class Lexer
             end
         end
     end
-    # TODO: cfor
     def cfor()
+        self.store do
+            if !self.expect("for")
+                next false
+            end
+            if !self.expect("(")
+                next false
+            end
+
+            init = self.expr()
+            if !init
+                init = nil
+            end
+            if !self.expect(";")
+                next false
+            end
+            cond = self.expr()
+            if !cond
+                cond = nil
+            end
+            if !self.expect(";")
+                next false
+            end
+            update = self.expr()
+            if !update
+                update = nil
+            end
+
+            if !self.expect(")")
+                next false
+            end
+
+            if self.expect("{")
+                body = self.body()
+                self.expect("}")
+                next CFor.new(init, cond, update, body)
+            else
+                e = self.expr()
+                if !e
+                    next false
+                end
+                body = [e]
+                next CFor.new(init, cond, update, body)
+            end
+        end
     end
     def cwhile()
         self.store do
@@ -716,9 +784,13 @@ class Lexer
             next CDo.new(cond, body)
         end
     end
-    # TODO: statement (for)
     def statement()
         res = self.cif()
+        if res
+            return res
+        end
+
+        res = self.cfor()
         if res
             return res
         end

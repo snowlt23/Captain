@@ -22,6 +22,12 @@ int main() {
     int a = 1;
     int b = 2.0;
     a += add(1, 2 + (1 - 1));
+    for (int i = 0; i < 10; i++) {
+        printf("%d\n", a);
+    }
+    for (;;) {
+        printf("%s\n", a);
+    }
     if (a > b) {
         printf("%d\n", a);
     }
