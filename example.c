@@ -25,6 +25,12 @@ int main() {
     if (a > b) {
         printf("%d\n", a);
     }
+    while (false) {
+        printf("%d\n", a);
+    }
+    do {
+        printf("%d\n", a);
+    } while (false);
     return 0;
 }
 

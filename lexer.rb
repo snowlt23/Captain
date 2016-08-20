@@ -202,6 +202,28 @@ class CIf
     end
 end
 
+class CWhile
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def to_s()
+        return "while (#{@cond.to_s}) { #{body_to_s(@body)} }"
+    end
+end
+
+class CDo
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def to_s()
+        return "do { #{body_to_s(@body)} } while (#{@cond.to_s})"
+    end
+end
+
 class CReturn
     attr_accessor :expr
     def initialize(expr)
@@ -599,7 +621,6 @@ class Lexer
             end
         end
     end
-    # FIXME: cif
     def cif()
         self.store do
             if !self.expect("if")
@@ -635,15 +656,79 @@ class Lexer
     # TODO: cfor
     def cfor()
     end
-    # TODO: cwhile
     def cwhile()
+        self.store do
+            if !self.expect("while")
+                next false
+            end
+            if !self.expect("(")
+                next false
+            end
+
+            cond = self.expr()
+            if !cond
+                next false
+            end
+
+            if !self.expect(")")
+                next false
+            end
+
+            if self.expect("{")
+                body = self.body()
+                self.expect("}")
+                next CWhile.new(cond, body)
+            else
+                e = self.expr()
+                if !e
+                    next false
+                end
+                body = [e]
+                next CWhile.new(cond, body)
+            end
+        end
     end
-    # TODO: cdo
     def cdo()
+        self.store do
+            if !self.expect("do")
+                next false
+            end
+            if !self.expect("{")
+                next false
+            end
+            body = self.body()
+            if !self.expect("}")
+                next false
+            end
+            if !self.expect("while")
+                next false
+            end
+            if !self.expect("(")
+                next false
+            end
+            cond = self.expr()
+            if !cond
+                next false
+            end
+            if !self.expect(")")
+                next false
+            end
+            next CDo.new(cond, body)
+        end
     end
-    # FIXME: statement
+    # TODO: statement (for)
     def statement()
         res = self.cif()
+        if res
+            return res
+        end
+
+        res = self.cwhile()
+        if res
+            return res
+        end
+
+        res = self.cdo()
         if res
             return res
         end
