@@ -1,5 +1,25 @@
 
 module PEG
+    class SourcePos
+        attr_accessor :line, :column
+        def initialize(line, column)
+            @line = line
+            @column = column
+        end
+        def self.calc(s, pos)
+            line = 1
+            column = 1
+            for i in 0..pos-1
+                if s[i] == "\n"
+                    line += 1
+                    column = 1
+                else
+                    column += 1
+                end
+            end
+            SourcePos.new(line, column)
+        end
+    end
     # type: success, failure, garbage
     class Result
         attr_accessor :type, :value, :pos
@@ -150,13 +170,14 @@ module PEG
                 end
             end
         end
-        def except()
+        def except(msg: "")
             Parser.new do |input, pos|
                 res = self.parse(input, pos)
                 if res.success?
                     res
                 elsif res.failure?
-                    raise "TODO: error!"
+                    srcpos = SourcePos.calc(input, pos)
+                    raise "(#{srcpos.line}, #{srcpos.column}) parse error: #{msg}"
                 elsif res.garbage?
                     res
                 end
@@ -167,6 +188,17 @@ module PEG
         Parser.new do |input, pos|
             if input[pos, s.length] == s
                 Result.success(s, pos + s.length)
+            else
+                Result.failure
+            end
+        end
+    end
+    def match(reg)
+        Parser.new do |input, pos|
+            res = reg.match(input[pos..-1])
+            endpos = res.end(0)
+            if endpos
+                Result.success(res.to_s, pos + endpos)
             else
                 Result.failure
             end
