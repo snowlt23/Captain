@@ -55,7 +55,7 @@ parsed = lexer.toplevel()
 for e in parsed
     p e
 end
-print "\n\n"
+print "\n"
 puts parsed
 
 # puts lexer.expr().to_s

@@ -202,6 +202,16 @@ class CIf
     end
 end
 
+class CReturn
+    attr_accessor :expr
+    def initialize(expr)
+        @expr = expr
+    end
+    def to_s()
+        return "return #{@expr.to_s}"
+    end
+end
+
 class Toplevel
 end
 
@@ -530,10 +540,15 @@ class Lexer
             return res
         end
 
-        # res = self.variable()
-        # if res
-        #     return res
-        # end
+        res = self.creturn()
+        if res
+            return res
+        end
+
+        res = self.variable()
+        if res
+            return res
+        end
 
         res = self.ident()
         if res
@@ -641,6 +656,18 @@ class Lexer
             return pe
         else
             return self.opexpr()
+        end
+    end
+    def creturn()
+        self.store do
+            if !self.expect("return")
+                next false
+            end
+            e = self.expr()
+            if !e
+                next false
+            end
+            next CReturn.new(e)
         end
     end
     def global()
