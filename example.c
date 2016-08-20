@@ -18,6 +18,8 @@ int add(const int* a, const int* b) {
     return *a + *b;
 }
 
+const char MAGIC = L"FFFFFFFF";
+
 int main() {
     int a = 1;
     int b = 2.0;

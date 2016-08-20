@@ -86,12 +86,13 @@ $separates = [
 $special_tokens = $separates + $spaces + $operators
 
 class CString
-    attr_accessor :str
-    def initialize(str)
+    attr_accessor :prefix, :str
+    def initialize(prefix, str)
+        @prefix = prefix
         @str = str
     end
     def to_s()
-        return "\"#{@str}\""
+        return "#{@prefix}\"#{@str}\""
     end
 end
 
@@ -455,8 +456,13 @@ class Lexer
         self.store do
             self.skip_spaces()
 
-            if !self.expect("\"")
-                next false
+            prefix = self.get(1)
+            if prefix == "\""
+                prefix = nil
+            else
+                if !self.expect("\"")
+                    next false
+                end
             end
 
             s = ""
@@ -476,7 +482,7 @@ class Lexer
                 end
                 @pos += 1
             end
-            next CString.new(s)
+            next CString.new(prefix, s)
         end
     end
     def character()
