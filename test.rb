@@ -52,7 +52,9 @@ lexer.add_syntax "generate_test" do |lex|
 end
 
 parsed = lexer.toplevel()
-print parsed
+for e in parsed
+    p e
+end
 print "\n\n"
 puts parsed
 

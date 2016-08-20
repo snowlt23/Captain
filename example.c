@@ -14,8 +14,8 @@ void assert_test() {
     ASSERT_EQ(a, b);
 }
 
-int add(int a, int b) {
-    return a + b;
+int add(const int* a, const int* b) {
+    return *a + *b;
 }
 
 int main() {

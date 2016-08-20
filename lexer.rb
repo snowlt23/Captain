@@ -108,16 +108,26 @@ end
 
 class Variable
     attr_accessor :type, :name, :value
-    def initialize(type, name, value)
+    def initialize(const, type, pointer, name, value)
+        @const = const
         @type = type
+        @pointer = pointer
         @name = name
         @value = value
     end
     def to_s()
+        conststr = ""
+        if @const
+            conststr = "const "
+        end
+        pointerstr = ""
+        if @pointer
+            pointerstr = "*"
+        end
         if @value
-            return "#{@type} #{@name} = #{@value.to_s}"
+            return "#{conststr}#{@type}#{pointerstr} #{@name} = #{@value.to_s}"
         else
-            return "#{@type} #{@name}"
+            return "#{conststr}#{@type}#{pointerstr} #{@name}"
         end
     end
 end
@@ -446,9 +456,18 @@ class Lexer
     end
     def variable()
         self.store do
+            const = false
+            if self.expect("const")
+                const = true
+            end
+
             type = self.ident()
             if !type
                 next false
+            end
+            pointer = false
+            if self.expect("*")
+                pointer = true
             end
 
             name = self.ident()
@@ -463,8 +482,7 @@ class Lexer
                     next false
                 end
             end
-
-            next Variable.new(type, name, value)
+            next Variable.new(const, type, pointer, name, value)
         end
     end
     # def struct()
@@ -512,10 +530,10 @@ class Lexer
             return res
         end
 
-        res = self.variable()
-        if res
-            return res
-        end
+        # res = self.variable()
+        # if res
+        #     return res
+        # end
 
         res = self.ident()
         if res
@@ -674,9 +692,8 @@ class Lexer
             args = []
             if !self.expect(")")
                 begin
-                    type = self.ident()
-                    argname = self.ident()
-                    args.push(Variable.new(type, argname, nil))
+                    var = self.variable()
+                    args.push(var)
                 end while self.expect(",")
 
                 if !self.expect(")")
