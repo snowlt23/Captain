@@ -95,6 +95,16 @@ class CString
     end
 end
 
+class CCharacter
+    attr_accessor :char
+    def initialize(char)
+        @char = char
+    end
+    def to_s()
+        return "'#{@char}'"
+    end
+end
+
 class FCall
     attr_accessor :name, :args
     def initialize(name, args)
@@ -469,6 +479,24 @@ class Lexer
             next CString.new(s)
         end
     end
+    def character()
+        self.store do
+            self.skip_spaces()
+
+            if !self.expect("'")
+                next false
+            end
+            c = self.get(1)
+            if !c
+                next false
+            end
+            if !self.expect("'")
+                next false
+            end
+
+            next CCharacter.new(c)
+        end
+    end
     def operator()
         self.store do
             opdata = nil
@@ -573,6 +601,11 @@ class Lexer
         end
 
         res = self.string()
+        if res
+            return res
+        end
+
+        res = self.character()
         if res
             return res
         end

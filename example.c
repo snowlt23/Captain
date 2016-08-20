@@ -21,6 +21,7 @@ int add(const int* a, const int* b) {
 int main() {
     int a = 1;
     int b = 2.0;
+    char c = 't';
     a += add(1, 2 + (1 - 1));
     for (int i = 0; i < 10; i++) {
         printf("%d\n", a);
