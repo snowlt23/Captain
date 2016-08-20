@@ -547,6 +547,21 @@ class Lexer
             end
         end
     end
+    # TODO: cif
+    def cif()
+    end
+    # TODO: cfor
+    def cfor()
+    end
+    # TODO: cwhile
+    def cwhile()
+    end
+    # TODO: cdo
+    def cdo()
+    end
+    # TODO: statement
+    def statement()
+    end
     def expr()
         pe = parenexpr()
         if pe
