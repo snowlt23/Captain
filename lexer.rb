@@ -7,7 +7,7 @@ def is_num?(s)
     end
 end
 
-def args_to_str(args)
+def args_to_s(args)
     if args == []
         return ""
     else
@@ -17,6 +17,13 @@ def args_to_str(args)
         end
         return s
     end
+end
+def body_to_s(body)
+    s = ""
+    for e in body
+        s += e.to_s + ";"
+    end
+    return s
 end
 
 $operators = [
@@ -95,7 +102,7 @@ class FCall
         @args = args
     end
     def to_s()
-        return "#{name}(#{args_to_str(@args)})"
+        return "#{name}(#{args_to_s(@args)})"
     end
 end
 
@@ -133,15 +140,8 @@ class Function
         @args = args
         @body = body
     end
-    def body_to_s()
-        s = ""
-        for e in body
-            s += e.to_s + ";"
-        end
-        return s
-    end
     def to_s()
-        return "#{@ret} #{@name}(#{args_to_str(@args)}) { #{self.body_to_s} }"
+        return "#{@ret} #{@name}(#{args_to_s(@args)}) { #{body_to_s(@body)} }"
     end
 end
 
@@ -181,6 +181,17 @@ class Paren
     end
 end
 
+class CIf
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def to_s()
+        return "if (#{@cond.to_s}) { #{body_to_s(@body)} }"
+    end
+end
+
 class Toplevel
 end
 
@@ -216,6 +227,9 @@ class Lexer
         else
             return @src[@pos, len]
         end
+    end
+    def prev(len)
+        return @src[@pos - len, len]
     end
     def save_pos()
         @save = @pos
@@ -473,6 +487,11 @@ class Lexer
             return res
         end
 
+        res = self.statement()
+        if res
+            return res
+        end
+
         res = self.number()
         if res
             return res
@@ -547,8 +566,38 @@ class Lexer
             end
         end
     end
-    # TODO: cif
+    # FIXME: cif
     def cif()
+        self.store do
+            if !self.expect("if")
+                next false
+            end
+            if !self.expect("(")
+                next false
+            end
+
+            cond = self.expr()
+            if !cond
+                next false
+            end
+
+            if !self.expect(")")
+                next false
+            end
+
+            if self.expect("{")
+                body = self.body()
+                self.expect("}")
+                next CIf.new(cond, body)
+            else
+                e = self.expr()
+                if !e
+                    next false
+                end
+                body = [e]
+                next CIf.new(cond, body)
+            end
+        end
     end
     # TODO: cfor
     def cfor()
@@ -559,8 +608,14 @@ class Lexer
     # TODO: cdo
     def cdo()
     end
-    # TODO: statement
+    # FIXME: statement
     def statement()
+        res = self.cif()
+        if res
+            return res
+        end
+
+        return false
     end
     def expr()
         pe = parenexpr()
@@ -590,7 +645,9 @@ class Lexer
                 if !e
                     break
                 end
-                if !self.expect(";")
+
+                if self.prev(1) == "}"
+                elsif !self.expect(";")
                     break
                 end
                 exprs.push(e)

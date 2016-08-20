@@ -22,7 +22,9 @@ int main() {
     int a = 1;
     int b = 2.0;
     a += add(1, 2 + (1 - 1));
-    printf("%d\n", a);
+    if (a > b) {
+        printf("%d\n", a);
+    }
     return 0;
 }
 
