@@ -2,6 +2,10 @@
 require './peg'
 include PEG
 
+def args_to_src(indent, args)
+    args.map{|e| e.generate_src(indent)}.join(",")
+end
+
 class Indent
     def initialize(indent: "    ", compress: false)
         @num = 0
@@ -66,6 +70,17 @@ class COperator
     end
 end
 
+class CFCall
+    attr_accessor :name, :args
+    def initialize(name, args)
+        @name = name
+        @args = args
+    end
+    def generate_src(indent)
+        "#{@name}(#{args_to_src(@args)})"
+    end
+end
+
 class Lexer
     def space
         (str("\s") / str("\t") / str("\n")).repeat1
@@ -74,7 +89,7 @@ class Lexer
         space.opt.garbage
     end
     def expect(s) # primitive
-        sp >> str(s)
+        (sp >> str(s)).garbage
     end
     def ident # primitive
         sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
@@ -119,13 +134,13 @@ class Lexer
             CString.new(parsed[0], parsed[1])
         end
     end
-    def character
+    def character # primitive
         (sp >> str("'").garbage >> match('.') >> str("'").garbage).map do |parsed|
             CCharacter.new(parsed[0])
         end
     end
-    def operator
-        Parser.new do |input, pos|
+    def operator # primitive
+        sp >> Parser.new do |input, pos|
             opdata = nil
             for op in $operators
                 if input[pos, op.length] == op
@@ -139,6 +154,16 @@ class Lexer
             else
                 Result.failure
             end
+        end
+    end
+    def args_inside(parser)
+        (parser >> (expect(",") >> parser).repeat).opt
+    end
+    def fcall
+        (ident >> expect("(") >> args_inside(expr) >> expect(")")).map do |parsed|
+            name = parsed[0]
+            args = parsed[1]
+            CFCall.new(name, args)
         end
     end
 end
