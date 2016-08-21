@@ -160,6 +160,18 @@ module PEG
                 end
             end
         end
+        def not
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                if res.success?
+                    Result.failure
+                elsif res.failure?
+                    Result.success(nil, res.pos)
+                elsif res.garbage?
+                    Result.failure
+                end
+            end
+        end
         def garbage
             Parser.new do |input, pos|
                 res = self.parse(input, pos)

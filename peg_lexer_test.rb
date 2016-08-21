@@ -22,3 +22,7 @@ lexer = Lexer.new()
 parsed = lexer.ident.exec("abcd01")
 puts parsed.type
 puts parsed.value
+
+s_parsed = lexer.string.exec("L\"Hello!!\"")
+puts s_parsed.type
+puts s_parsed.value
