@@ -228,7 +228,7 @@ module PEG
         end
     end
     def get(s, pos, len)
-        if s.length >= pos + len
+        if s.length <= pos + len
             return false
         else
             return s[pos, len]

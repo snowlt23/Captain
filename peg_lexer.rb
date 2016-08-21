@@ -17,6 +17,14 @@ def body_to_src(indent, body)
     s
 end
 
+def is_num?(s)
+    if "0".ord <= s.ord && s.ord <= "9".ord
+        return true
+    else
+        return false
+    end
+end
+
 $operators = [
     "+=",
     "-=",
@@ -55,6 +63,26 @@ $operators = [
     "?",
     "!"
 ]
+
+$spaces = [
+    " ",
+    "\n",
+    "\t"
+]
+
+$separates = [
+    "{",
+    "}",
+    "[",
+    "]",
+    "(",
+    ")",
+    ",",
+    ";",
+    ":"
+]
+
+$special_tokens = $separates + $spaces + $operators
 
 class Indent
     def initialize(indent: "    ", compress: false)
@@ -284,7 +312,7 @@ end
 
 class CFunction
     attr_accessor :ret, :pointer, :name, :args, :body
-    def initialize(ret, pointer, name, args)
+    def initialize(ret, pointer, name, args, body)
         @ret = ret
         @pointer = pointer
         @name = name
@@ -373,8 +401,39 @@ class Lexer
             end
         end
     end
+    def special?(input, pos)
+        for token in $special_tokens
+            if get(input, pos, token.length) == token
+                return true
+            end
+        end
+        return false
+    end
     def ident # primitive
-        sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
+        sp >> Parser.new do |input, pos|
+            if special?(input, pos)
+                next Result.failure
+            end
+            first = get(input, pos, 1)
+            if !first || is_num?(first)
+                next Result.failure
+            end
+            s = ""
+            while !special?(input, pos)
+                c = get(input, pos, 1)
+                if !c
+                    break
+                end
+                s += c
+                pos += 1
+            end
+            if s == ""
+                next Result.failure
+            else
+                next Result.success(s, pos)
+            end
+        end
+        # sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
     end
     def integer # primitive
         sp >> match('[0-9]').repeat1.concat.map do |parsed|
@@ -434,7 +493,7 @@ class Lexer
                 end
             end
             if opdata != nil
-                Result.success(Operator.new(opdata), pos)
+                Result.success(COperator.new(opdata), pos)
             else
                 Result.failure
             end
@@ -512,7 +571,7 @@ class Lexer
     end
     def creturn
         (expect("return") >> expr).map do |parsed|
-            CReturn.new(parsed[0])
+            CReturn.new(parsed)
         end
     end
     def primexpr
@@ -525,15 +584,15 @@ class Lexer
     end
     def parenexpr
         (expect("(") >> exprarray >> expect(")")).map do |parsed|
-            CParen.new(parsed[0])
+            CParen.new(parsed)
         end
     end
     def expr
         lazy(lambda { parenexpr / exprarray })
     end
     def global
-        (variable >> expect(";")).map do
-            CGlobal.new(parsed[0])
+        (variable >> expect(";")).map do |parsed|
+            CGlobal.new(parsed)
         end
     end
     def fdecl
@@ -541,22 +600,20 @@ class Lexer
     end
     def fprototype
         (fdecl >> expect(";")).map do |parsed|
-            decl = parsed[0]
-            ret = decl[0]
-            pointer = decl[1]
-            name = decl[2]
-            args = decl[3]
+            ret = parsed[0]
+            pointer = parsed[1]
+            name = parsed[2]
+            args = parsed[3]
             CFPrototype.new(ret, pointer, name, args)
         end
     end
     def function
         (fdecl >> block).map do |parsed|
-            decl = parsed[0]
-            ret = decl[0]
-            pointer = decl[1]
-            name = decl[2]
-            args = decl[3]
-            body = parsed[1]
+            ret = parsed[0]
+            pointer = parsed[1]
+            name = parsed[2]
+            args = parsed[3]
+            body = parsed[4]
             CFunction.new(ret, pointer, name, args, body)
         end
     end
