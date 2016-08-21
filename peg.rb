@@ -126,7 +126,7 @@ module PEG
                 end
             end
         end
-        def *
+        def repeat
             Parser.new do |input, pos|
                 ret = []
                 while true
@@ -134,15 +134,17 @@ module PEG
                     if res.success?
                         ret << res.value
                         pos = res.pos
-                    else
+                    elsif res.failure?
                         break
+                    elsif res.garbage?
+                        pos = res.pos
                     end
                 end
                 Result.success(ret, pos)
             end
         end
-        def +
-            (self >> self.*).map do |parsed|
+        def repeat1
+            (self >> self.repeat).map do |parsed|
                 parsed[1].insert(0, parsed[0])
             end
         end
@@ -170,6 +172,11 @@ module PEG
                 end
             end
         end
+        def concat # mapper
+            self.map do |parsed|
+                parsed.join("")
+            end
+        end
         def except(msg: "")
             Parser.new do |input, pos|
                 res = self.parse(input, pos)
@@ -193,8 +200,9 @@ module PEG
             end
         end
     end
-    def match(reg)
+    def match(s)
         Parser.new do |input, pos|
+            reg = Regexp.new("^"+s)
             res = reg.match(input[pos..-1])
             if res
                 Result.success(res.to_s, pos + res.end(0))

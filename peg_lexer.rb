@@ -1,4 +1,7 @@
 
+require './peg'
+include PEG
+
 class Indent
     def initialize(indent: "    ", compress: false)
         @num = 0
@@ -32,19 +35,8 @@ class Indent
     end
 end
 
-indent = Indent.new()
-puts(indent.block do
-    add "if (true) {"
-    indent.block do
-        add "printf(\"Hello!!\\n\");"
+class Lexer
+    def ident
+        (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
     end
-    add "}"
-end)
-
-puts(indent.block do
-    add "while (false) {"
-    indent.block do
-        add "printf(\"Hello!!\\n\");"
-    end
-    add "}"
-end)
+end
