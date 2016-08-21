@@ -196,6 +196,12 @@ module PEG
                 end
             end
         end
+        def result(&block)
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                block.call(res)
+            end
+        end
         def concat # mapper
             self.map do |parsed|
                 parsed.join("")

@@ -81,6 +81,32 @@ class CFCall
     end
 end
 
+class CVariable
+    attr_accessor :const, :type, :pointer, :name, :value
+    def initialize(const, type, pointer, name, value)
+        @const = const
+        @type = type
+        @pointer = pointer
+        @name = name
+        @value = value
+    end
+    def generate_src(indent)
+        conststr = ""
+        if @const
+            conststr = "const "
+        end
+        pointerstr = ""
+        if @pointer
+            pointerstr = "*"
+        end
+        valuestr = ""
+        if @value
+            valuestr = " = #{@value.generate_src}"
+        end
+        "#{conststr}#{@type}#{pointerstr} #{@name}#{valuestr}"
+    end
+end
+
 class Lexer
     def space
         (str("\s") / str("\t") / str("\n")).repeat1
@@ -90,6 +116,17 @@ class Lexer
     end
     def expect(s) # primitive
         (sp >> str(s)).garbage
+    end
+    def next_if(s) # primitive
+        (sp >> str(s)).result do |res|
+            if res.success?
+                Result.success(true, res.pos)
+            elsif res.failure?
+                Result.success(false, res.pos)
+            elsif res.garbage?
+                res
+            end
+        end
     end
     def ident # primitive
         sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
@@ -164,6 +201,16 @@ class Lexer
             name = parsed[0]
             args = parsed[1]
             CFCall.new(name, args)
+        end
+    end
+    def variable()
+        (next_if("const") >> ident >> next_if("*") >> ident >> (expect("=") >> expr).opt).map do |parsed|
+            const = parsed[0]
+            type = parsed[1]
+            pointer = parsed[2]
+            name = parsed[3]
+            value = parsed[4]
+            CVariable.new(const, type, pointer, name, value)
         end
     end
 end
