@@ -196,9 +196,8 @@ module PEG
     def match(reg)
         Parser.new do |input, pos|
             res = reg.match(input[pos..-1])
-            endpos = res.end(0)
-            if endpos
-                Result.success(res.to_s, pos + endpos)
+            if res
+                Result.success(res.to_s, pos + res.end(0))
             else
                 Result.failure
             end
