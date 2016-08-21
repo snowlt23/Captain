@@ -29,6 +29,10 @@ require './peg_lexer'
 # puts s_parsed.value.s
 
 lexer = Lexer.new()
+
+# p lexer.variable.exec("int a = 1").value
+p lexer.variable.exec("int a")
+
 parsed = lexer.parse(File.read("example.c"))
 p parsed.type
 p parsed.value

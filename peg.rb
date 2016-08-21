@@ -207,6 +207,12 @@ module PEG
                 parsed.join("")
             end
         end
+        def print # mapper
+            self.map do |parsed|
+                puts parsed
+                parsed
+            end
+        end
         def except(msg: "")
             Parser.new do |input, pos|
                 res = self.parse(input, pos)
