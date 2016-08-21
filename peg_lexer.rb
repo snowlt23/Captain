@@ -307,13 +307,17 @@ end
 class Lexer
     def linecomment
         Parser.new do |input, pos|
-            s = input[pos, 2]
-            if s == "//"
+            s = get(input, pos, 2)
+            if !s
+                Result.failure
+            elsif s == "//"
                 pos += 2
                 while true
-                    c = input[pos]
+                    c = get(input, pos, 1)
                     pos += 1
-                    if c == "\n"
+                    if !c
+                        break
+                    elsif c == "\n"
                         break
                     end
                 end
@@ -325,12 +329,16 @@ class Lexer
     end
     def blockcomment
         Parser.new do |input, pos|
-            s = input[pos, 2]
-            if s == "/*"
+            s = get(input, pos, 2)
+            if !s
+                Result.failure
+            elsif s == "/*"
                 pos += 2
                 while true
-                    c = input[pos, 2]
-                    if s == "*/"
+                    c = get(input, pos, 2)
+                    if !c
+                        next Result.failure
+                    elsif c == "*/"
                         pos += 2
                         break
                     end
@@ -369,12 +377,12 @@ class Lexer
         sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
     end
     def integer # primitive
-        sp >> match('[0-9]').repeat1.map do |parsed|
+        sp >> match('[0-9]').repeat1.concat.map do |parsed|
             Integer(parsed)
         end
     end
     def float # primitive
-        (sp >> match('[0-9]').repeat1 >> str(".") >> match('[0-9]').repeat1).map do |parsed|
+        (sp >> match('[0-9]').repeat1 >> str(".") >> match('[0-9]').repeat1).concat.map do |parsed|
             Float(parsed[0] + parsed[1] + parsed[2])
         end
     end
@@ -386,8 +394,10 @@ class Lexer
             s = ""
             escape_flag = false
             while true
-                c = input[pos]
-                if c == "\"" && escape_flag
+                c = get(input, pos, 1)
+                if !c
+                    next Result.failure
+                elsif c == "\"" && escape_flag
                     s += "\""
                 elsif c == "\""
                     pos += 1
@@ -506,7 +516,7 @@ class Lexer
         end
     end
     def primexpr
-        statement / number / string / character / operator / fcall / creturn / variable / ident / parenexpr
+        statement / number / string / character / operator / fcall / creturn / variable / ident / lazy(lambda{parenexpr})
     end
     def exprarray
         primexpr.repeat1.map do |parsed|

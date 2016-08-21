@@ -31,7 +31,7 @@ require './peg_lexer'
 lexer = Lexer.new()
 
 # p lexer.variable.exec("int a = 1").value
-p lexer.variable.exec("int a")
+p lexer.variable.exec("int a = 1")
 
 parsed = lexer.parse(File.read("example.c"))
 p parsed.type

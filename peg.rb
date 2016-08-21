@@ -227,6 +227,13 @@ module PEG
             end
         end
     end
+    def get(s, pos, len)
+        if s.length >= pos + len
+            return false
+        else
+            return s[pos, len]
+        end
+    end
     def str(s)
         Parser.new do |input, pos|
             if input.length <= pos + s.length
