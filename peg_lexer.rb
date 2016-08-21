@@ -46,6 +46,26 @@ class CString
     end
 end
 
+class CCharacter
+    attr_accessor :c
+    def initialize(c)
+        @c = c
+    end
+    def generate_src(indent)
+        "'#{@c}'"
+    end
+end
+
+class COperator
+    attr_accessor :op
+    def initialize(op)
+        @op = op
+    end
+    def generate_src(indent)
+        "#{@op}"
+    end
+end
+
 class Lexer
     def space
         (str("\s") / str("\t") / str("\n")).repeat1
@@ -95,8 +115,30 @@ class Lexer
         end
     end
     def string # primitive
-        (sp >> match('[a-zA-Z]').opt >> str("\"").garbage >> string_inside).map do |parsed|
+        (sp >> ident.opt >> str("\"").garbage >> string_inside).map do |parsed|
             CString.new(parsed[0], parsed[1])
+        end
+    end
+    def character
+        (sp >> str("'").garbage >> match('.') >> str("'").garbage).map do |parsed|
+            CCharacter.new(parsed[0])
+        end
+    end
+    def operator
+        Parser.new do |input, pos|
+            opdata = nil
+            for op in $operators
+                if input[pos, op.length] == op
+                    opdata = op
+                    pos += op.length
+                    break
+                end
+            end
+            if opdata != nil
+                Result.success(Operator.new(opdata), pos)
+            else
+                Result.failure
+            end
         end
     end
 end

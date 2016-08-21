@@ -25,4 +25,5 @@ puts parsed.value
 
 s_parsed = lexer.string.exec("L\"Hello!!\"")
 puts s_parsed.type
-puts s_parsed.value
+puts s_parsed.value.prefix
+puts s_parsed.value.s
