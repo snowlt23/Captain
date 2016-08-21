@@ -6,6 +6,17 @@ def args_to_src(indent, args)
     args.map{|e| e.generate_src(indent)}.join(",")
 end
 
+def body_to_src(indent, body)
+    s = ""
+    for e in body
+        s += e.generate_src(indent) + ";"
+        if !indent.compress
+            s += "\n"
+        end
+    end
+    s
+end
+
 class Indent
     def initialize(indent: "    ", compress: false)
         @num = 0
@@ -27,14 +38,18 @@ class Indent
             @current += self.gen() + s + "\n"
         end
     end
+    def start(&f)
+        self.instance_eval(&f)
+        s = @current
+        @current = ""
+        s
+    end
     def block(&f)
         @num += 1
         self.instance_eval(&f)
         @num -= 1
         s = @current
-        if @num == 0
-            @current = ""
-        end
+        @current = ""
         s
     end
 end
@@ -101,9 +116,41 @@ class CVariable
         end
         valuestr = ""
         if @value
-            valuestr = " = #{@value.generate_src}"
+            valuestr = " = #{@value.generate_src(indent)}"
         end
         "#{conststr}#{@type}#{pointerstr} #{@name}#{valuestr}"
+    end
+end
+
+class CIf
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def generate_src(indent)
+        indent.start do
+            add "if (#{@cond.generate_src(indent)}) {"
+            add body_to_src(@body)
+            add "}"
+        end
+    end
+end
+
+class CFor
+    attr_accessor :init, :cond, :update, :body
+    def initialize(init, cond, update, body)
+        @init = init
+        @cond = cond
+        @update = update
+        @body = body
+    end
+    def generate_src(indent)
+        indent.start do
+            add "for (#{@init.generate_src(indent)};#{@cond.generate_src(indent)};#{@update.generate_src(indent)}) {"
+            add body_to_src(@body)
+            add "}"
+        end
     end
 end
 
@@ -203,7 +250,7 @@ class Lexer
             CFCall.new(name, args)
         end
     end
-    def variable()
+    def variable
         (next_if("const") >> ident >> next_if("*") >> ident >> (expect("=") >> expr).opt).map do |parsed|
             const = parsed[0]
             type = parsed[1]
@@ -212,5 +259,35 @@ class Lexer
             value = parsed[4]
             CVariable.new(const, type, pointer, name, value)
         end
+    end
+    def body
+        (expr >> expect(";").opt).repeat
+    end
+    def block
+        expect("{") >> body >> expect("}")
+    end
+    def cif
+        (expect("if") >> expect("(") >> expr >> expect(")") >> (expr / block)).map do |parsed|
+            cond = parsed[0]
+            body = parsed[1]
+            CIf.new(cond, body)
+        end
+    end
+    def cfor
+        (expect("for") >> expect("(") >>
+        expr.opt >> expect(";") >> expr.opt >> expect(";") >> expr.opt >>
+        expect(")") >> (expr / block)).map do |parsed|
+            init = parsed[0]
+            cond = parsed[1]
+            update = parsed[2]
+            body = parsed[3]
+            CFor.new(init, cond, update, body)
+        end
+    end
+    # TODO: statement
+    def statement
+    end
+    # TODO: primexpr
+    def primexpr
     end
 end
