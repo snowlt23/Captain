@@ -266,8 +266,48 @@ class CFunction
 end
 
 class Lexer
+    def linecomment
+        Parser.new do |input, pos|
+            s = input[pos, 2]
+            if s == "//"
+                pos += 2
+                while true
+                    c = input[pos]
+                    pos += 1
+                    if c == "\n"
+                        break
+                    end
+                end
+                Result.success(nil, pos)
+            else
+                Result.failure
+            end
+        end
+    end
+    def blockcomment
+        Parser.new do |input, pos|
+            s = input[pos, 2]
+            if s == "/*"
+                pos += 2
+                while true
+                    c = input[pos, 2]
+                    if s == "*/"
+                        pos += 2
+                        break
+                    end
+                    pos += 1
+                end
+                Result.success(nil, pos)
+            else
+                Result.failure
+            end
+        end
+    end
+    def comment
+        linecomment / blockcomment
+    end
     def space
-        (str("\s") / str("\t") / str("\n")).repeat1
+        (str("\s") / str("\t") / str("\n") / comment).repeat1
     end
     def sp
         space.opt.garbage
@@ -482,5 +522,8 @@ class Lexer
     end
     def toplevel
         declare.repeat
+    end
+    def parse(src)
+        toplevel.exec(src)
     end
 end

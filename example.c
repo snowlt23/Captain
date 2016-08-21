@@ -7,9 +7,9 @@ int a = 1;
     Hello!!
 */
 
-class Actor
+// class Actor
 
-@test
+// @test
 void assert_test() {
     ASSERT_EQ(a, b);
 }
