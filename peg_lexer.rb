@@ -184,6 +184,87 @@ class CDo
     end
 end
 
+class CReturn
+    attr_accessor :expr
+    def initialize(expr)
+        @expr = expr
+    end
+    def generate_src(indent)
+        "return #{@expr.generate_src(indent)}"
+    end
+end
+
+class CExprArray
+    attr_accessor :exprs
+    def initialize(exprs)
+        @exprs = exprs
+    end
+    def generate_src(indent)
+        exprs.map{|e| e.generate_src(indent)}.join(" ")
+    end
+end
+
+class CParen
+    attr_accessor :expr
+    def initialize(expr)
+        @expr = expr
+    end
+    def generate_src(indent)
+        "(#{@expr.generate_src(indent)})"
+    end
+end
+
+class CGlobal
+    attr_accessor :var
+    def initialize(var)
+        @var = var
+    end
+    def generate_src(indent)
+        "#{@var.generate_src(indent)};"
+    end
+end
+
+class CFPrototype
+    attr_accessor :ret, :pointer, :name, :args
+    def initialize(ret, pointer, name, args)
+        @ret = ret
+        @pointer = pointer
+        @name = name
+        @args = args
+    end
+    def generate_src(indent)
+        pointerstr = ""
+        if @pointer
+            pointerstr = "*"
+        end
+        indent.start do
+            add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)});"
+        end
+    end
+end
+
+class CFunction
+    attr_accessor :ret, :pointer, :name, :args, :body
+    def initialize(ret, pointer, name, args)
+        @ret = ret
+        @pointer = pointer
+        @name = name
+        @args = args
+        @body = body
+    end
+    def generate_src(indent)
+        pointerstr = ""
+        if @pointer
+            pointerstr = "*"
+        end
+        indent.start do
+            add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)}) {"
+            add body_to_src(indent, @body)
+            add "}"
+        end
+    end
+end
+
 class Lexer
     def space
         (str("\s") / str("\t") / str("\n")).repeat1
@@ -337,10 +418,69 @@ class Lexer
             CDo.new(cond, body)
         end
     end
-    # TODO: statement
     def statement
+        cif / cfor / cwhile / cdo
     end
-    # TODO: primexpr
+    def creturn
+        (expect("return") >> expr).map do |parsed|
+            CReturn.new(parsed[0])
+        end
+    end
     def primexpr
+        statement / number / string / character / operator / fcall / creturn / variable / ident / parenexpr
+    end
+    def exprarray
+        primexpr.repeat1.map do |parsed|
+            CExprArray.new(parsed)
+        end
+    end
+    def parenexpr
+        (expect("(") >> exprarray >> expect(")")).map do |parsed|
+            CParen.new(parsed[0])
+        end
+    end
+    def expr
+        parenexpr / exprarray
+    end
+    def global
+        (variable >> expect(";")).map do
+            CGlobal.new(parsed[0])
+        end
+    end
+    def fdecl
+        ident >> next_if("*") >> ident >> expect("(") >> args_inside(variable) >> expect(")")
+    end
+    def fprototype
+        (fdecl >> expect(";")).map do |parsed|
+            decl = parsed[0]
+            ret = decl[0]
+            pointer = decl[1]
+            name = decl[2]
+            args = decl[3]
+            CFPrototype.new(ret, pointer, name, args)
+        end
+    end
+    def function
+        (fdecl >> block).map do |parsed|
+            decl = parsed[0]
+            ret = decl[0]
+            pointer = decl[1]
+            name = decl[2]
+            args = decl[3]
+            body = parsed[1]
+            CFunction.new(ret, pointer, name, args, body)
+        end
+    end
+    # def struct
+    # end
+    # def extern
+    # end
+    # def typedef
+    # end
+    def declare
+        global / fprototype / function
+    end
+    def toplevel
+        declare.repeat
     end
 end
