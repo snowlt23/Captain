@@ -232,6 +232,11 @@ module PEG
             end
         end
     end
+    def lazy(f)
+        Parser.new do |input, pos|
+            f.call.parse(input, pos)
+        end
+    end
     def match(s)
         Parser.new do |input, pos|
             if input.length <= pos
