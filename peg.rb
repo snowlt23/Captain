@@ -199,7 +199,7 @@ module PEG
         def result(&block)
             Parser.new do |input, pos|
                 res = self.parse(input, pos)
-                block.call(res)
+                block.call(res, pos)
             end
         end
         def concat # mapper

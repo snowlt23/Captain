@@ -316,11 +316,11 @@ class Lexer
         (sp >> str(s)).garbage
     end
     def next_if(s) # primitive
-        (sp >> str(s)).result do |res|
+        (sp >> str(s)).result do |res, pos|
             if res.success?
                 Result.success(true, res.pos)
             elsif res.failure?
-                Result.success(false, res.pos)
+                Result.success(false, pos)
             elsif res.garbage?
                 res
             end
@@ -395,14 +395,14 @@ class Lexer
         (parser >> (expect(",") >> parser).repeat).opt
     end
     def fcall
-        (ident >> expect("(") >> args_inside(expr) >> expect(")")).map do |parsed|
+        (ident >> expect("(") >> args_inside(lazy(lambda{expr})) >> expect(")")).map do |parsed|
             name = parsed[0]
             args = parsed[1]
             CFCall.new(name, args)
         end
     end
     def variable
-        (next_if("const") >> ident >> next_if("*") >> ident >> (expect("=") >> expr).opt).map do |parsed|
+        (next_if("const") >> ident >> next_if("*") >> ident >> (expect("=") >> lazy(lambda{expr})).opt).map do |parsed|
             const = parsed[0]
             type = parsed[1]
             pointer = parsed[2]
@@ -412,13 +412,13 @@ class Lexer
         end
     end
     def body
-        (expr >> expect(";").opt).repeat
+        (lazy(lambda{expr}) >> expect(";").opt).repeat
     end
     def block
         expect("{") >> body >> expect("}")
     end
     def statement_block
-        (expr / block).map do |parsed|
+        (lazy(lambda{expr}) / block).map do |parsed|
             if parsed.instance_of?(Array)
                 parsed
             else
@@ -427,7 +427,7 @@ class Lexer
         end
     end
     def cif
-        (expect("if") >> expect("(") >> expr >> expect(")") >> statement_block).map do |parsed|
+        (expect("if") >> expect("(") >> lazy(lambda{expr}) >> expect(")") >> statement_block).map do |parsed|
             cond = parsed[0]
             body = parsed[1]
             CIf.new(cond, body)
@@ -435,7 +435,7 @@ class Lexer
     end
     def cfor
         (expect("for") >> expect("(") >>
-        expr.opt >> expect(";") >> expr.opt >> expect(";") >> expr.opt >>
+        lazy(lambda{expr}).opt >> expect(";") >> lazy(lambda{expr}).opt >> expect(";") >> lazy(lambda{expr}).opt >>
         expect(")") >> statement_block).map do |parsed|
             init = parsed[0]
             cond = parsed[1]
@@ -445,14 +445,14 @@ class Lexer
         end
     end
     def cwhile
-        (expect("while") >> expect("(") >> expr >> expect(")") >> statement_block).map do |parsed|
+        (expect("while") >> expect("(") >> lazy(lambda{expr}) >> expect(")") >> statement_block).map do |parsed|
             cond = parsed[0]
             body = parsed[1]
             CWhile.new(cond, body)
         end
     end
     def cdo
-        (expect("do") >> block >> expect("while") >> expect("(") >> expr >> expect(")")).map do |parsed|
+        (expect("do") >> block >> expect("while") >> expect("(") >> lazy(lambda{expr}) >> expect(")")).map do |parsed|
             body = parsed[0]
             cond = parsed[1]
             CDo.new(cond, body)
@@ -462,7 +462,7 @@ class Lexer
         cif / cfor / cwhile / cdo
     end
     def creturn
-        (expect("return") >> expr).map do |parsed|
+        (expect("return") >> lazy(lambda{expr})).map do |parsed|
             CReturn.new(parsed[0])
         end
     end

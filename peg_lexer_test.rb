@@ -30,4 +30,5 @@ require './peg_lexer'
 
 lexer = Lexer.new()
 parsed = lexer.parse(File.read("example.c"))
-puts parsed
+p parsed.type
+p parsed.value
