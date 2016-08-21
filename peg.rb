@@ -148,6 +148,18 @@ module PEG
                 parsed[1].insert(0, parsed[0])
             end
         end
+        def opt
+            Parser.new do |input, pos|
+                res = self.parse(input, pos)
+                if res.success?
+                    res
+                elsif res.failure?
+                    Result.success(nil, pos)
+                elsif res.garbage?
+                    res
+                end
+            end
+        end
         def garbage
             Parser.new do |input, pos|
                 res = self.parse(input, pos)
@@ -193,7 +205,9 @@ module PEG
     end
     def str(s)
         Parser.new do |input, pos|
-            if input[pos, s.length] == s
+            if input.length <= pos + s.length
+                Result.failure
+            elsif input[pos, s.length] == s
                 Result.success(s, pos + s.length)
             else
                 Result.failure
@@ -202,12 +216,16 @@ module PEG
     end
     def match(s)
         Parser.new do |input, pos|
-            reg = Regexp.new("^"+s)
-            res = reg.match(input[pos..-1])
-            if res
-                Result.success(res.to_s, pos + res.end(0))
-            else
+            if input.length <= pos
                 Result.failure
+            else
+                reg = Regexp.new("^"+s)
+                res = reg.match(input[pos..-1])
+                if res
+                    Result.success(res.to_s, pos + res.end(0))
+                else
+                    Result.failure
+                end
             end
         end
     end

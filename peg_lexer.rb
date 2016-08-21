@@ -36,7 +36,13 @@ class Indent
 end
 
 class Lexer
+    def space
+        (str("\s") / str("\t") / str("\n")).repeat1
+    end
+    def sp
+        space.opt
+    end
     def ident
-        (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
+        sp >> (match('[a-zA-Z]') >> match('[a-zA-Z0-9]').repeat).concat
     end
 end
