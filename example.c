@@ -20,6 +20,15 @@ int add(const int* a, const int* b) {
 
 const char MAGIC = L"FFFFFFFF";
 
+struct Actor {
+    int x;
+    int y;
+    union {
+        void* id;
+        void* name;
+    };
+};
+
 int main() {
     int a = 1;
     int b = 2.0;

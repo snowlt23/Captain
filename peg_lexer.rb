@@ -332,6 +332,44 @@ class CFunction
     end
 end
 
+class CUnion
+    attr_accessor :name, :body
+    def initialize(name, body)
+        @name = name
+        @body = body
+    end
+    def generate_src(indent)
+        namestr = ""
+        if @name
+            namestr = " #{@name}"
+        end
+        indent.start do
+            add "union#{namestr} {"
+            add body_to_src(indent, @body)
+            add "}"
+        end
+    end
+end
+
+class CStruct
+    attr_accessor :name, :body
+    def initialize(name, body)
+        @name = name
+        @body = body
+    end
+    def generate_src(indent)
+        namestr = ""
+        if @name
+            namestr = " #{@name}"
+        end
+        indent.start do
+            add "struct#{namestr} {"
+            add body_to_src(indent, @body)
+            add "}"
+        end
+    end
+end
+
 class Lexer
     def linecomment
         Parser.new do |input, pos|
@@ -617,14 +655,32 @@ class Lexer
             CFunction.new(ret, pointer, name, args, body)
         end
     end
-    # def struct
-    # end
+    def typebody
+        ((lazy(lambda{union}) / lazy(lambda{struct}) / variable) >> expect(";")).repeat
+    end
+    def union
+        (expect("union") >> ident.opt >> expect("{") >> typebody >> expect("}")).map do |parsed|
+            name = parsed[0]
+            body = parsed[1]
+            CUnion.new(name, body)
+        end
+    end
+    def struct
+        (expect("struct") >> ident.opt >> expect("{") >> typebody >> expect("}")).map do |parsed|
+            name = parsed[0]
+            body = parsed[1]
+            CStruct.new(name, body)
+        end
+    end
+    def toptype
+        (struct / union) >> expect(";")
+    end
     # def extern
     # end
     # def typedef
     # end
     def declare
-        global / fprototype / function
+        toptype / global / fprototype / function
     end
     def toplevel
         declare.repeat

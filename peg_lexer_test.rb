@@ -38,4 +38,5 @@ p parsed.type
 # p parsed.value
 for e in parsed.value
     p e
+    print "\n"
 end
