@@ -131,7 +131,7 @@ class CIf
     def generate_src(indent)
         indent.start do
             add "if (#{@cond.generate_src(indent)}) {"
-            add body_to_src(@body)
+            add body_to_src(indent, @body)
             add "}"
         end
     end
@@ -148,8 +148,38 @@ class CFor
     def generate_src(indent)
         indent.start do
             add "for (#{@init.generate_src(indent)};#{@cond.generate_src(indent)};#{@update.generate_src(indent)}) {"
-            add body_to_src(@body)
+            add body_to_src(indent, @body)
             add "}"
+        end
+    end
+end
+
+class CWhile
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def generate_src(indent)
+        indent.start do
+            add "while (#{@cond.generate_src(indent)}) {"
+            add body_to_src(indent, @body)
+            add "}"
+        end
+    end
+end
+
+class CDo
+    attr_accessor :cond, :body
+    def initialize(cond, body)
+        @cond = cond
+        @body = body
+    end
+    def generate_src(indent)
+        indent.start do
+            add "do {"
+            add body_to_src(indent, @body)
+            add "} while (#{@cond.generate_src(indent)})"
         end
     end
 end
@@ -266,8 +296,17 @@ class Lexer
     def block
         expect("{") >> body >> expect("}")
     end
+    def statement_block
+        (expr / block).map do |parsed|
+            if parsed.instance_of?(Array)
+                parsed
+            else
+                [parsed]
+            end
+        end
+    end
     def cif
-        (expect("if") >> expect("(") >> expr >> expect(")") >> (expr / block)).map do |parsed|
+        (expect("if") >> expect("(") >> expr >> expect(")") >> statement_block).map do |parsed|
             cond = parsed[0]
             body = parsed[1]
             CIf.new(cond, body)
@@ -276,12 +315,26 @@ class Lexer
     def cfor
         (expect("for") >> expect("(") >>
         expr.opt >> expect(";") >> expr.opt >> expect(";") >> expr.opt >>
-        expect(")") >> (expr / block)).map do |parsed|
+        expect(")") >> statement_block).map do |parsed|
             init = parsed[0]
             cond = parsed[1]
             update = parsed[2]
             body = parsed[3]
             CFor.new(init, cond, update, body)
+        end
+    end
+    def cwhile
+        (expect("while") >> expect("(") >> expr >> expect(")") >> statement_block).map do |parsed|
+            cond = parsed[0]
+            body = parsed[1]
+            CWhile.new(cond, body)
+        end
+    end
+    def cdo
+        (expect("do") >> block >> expect("while") >> expect("(") >> expr >> expect(")")).map do |parsed|
+            body = parsed[0]
+            cond = parsed[1]
+            CDo.new(cond, body)
         end
     end
     # TODO: statement
