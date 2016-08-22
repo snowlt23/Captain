@@ -3,15 +3,21 @@ require './peg'
 include PEG
 
 def args_to_src(indent, args)
-    args.map{|e| e.generate_src(indent)}.join(",")
+    if args
+        args.map{|e| e.generate_src(indent)}.join(",")
+    else
+        ""
+    end
 end
 
 def body_to_src(indent, body)
     s = ""
-    for e in body
-        s += e.generate_src(indent) + ";"
-        if !indent.compress
-            s += "\n"
+    if body
+        for e in body
+            s += e.generate_src(indent) + ";"
+            if !indent.compress
+                s += "\n"
+            end
         end
     end
     s
@@ -85,6 +91,7 @@ $separates = [
 $special_tokens = $separates + $spaces + $operators
 
 class Indent
+    attr_accessor :num, :indent, :compress
     def initialize(indent: "    ", compress: false)
         @num = 0
         @indent = indent
@@ -106,18 +113,43 @@ class Indent
         end
     end
     def start(&f)
-        self.instance_eval(&f)
+        s =
+        f.call(self)
         s = @current
         @current = ""
         s
     end
     def block(&f)
         @num += 1
-        self.instance_eval(&f)
+        f.call(self)
         @num -= 1
         s = @current
         @current = ""
         s
+    end
+end
+
+class String
+    def generate_src(indent)
+        self
+    end
+end
+
+class Integer
+    def generate_src(indent)
+        self.to_s
+    end
+end
+
+class NilClass
+    def generate_src(indent)
+        ""
+    end
+end
+
+class Float
+    def generate_src(indent)
+        self.to_s
     end
 end
 
@@ -159,7 +191,7 @@ class CFCall
         @args = args
     end
     def generate_src(indent)
-        "#{@name}(#{args_to_src(@args)})"
+        "#{@name}(#{args_to_src(indent, @args)})"
     end
 end
 
@@ -196,10 +228,10 @@ class CIf
         @body = body
     end
     def generate_src(indent)
-        indent.start do
-            add "if (#{@cond.generate_src(indent)}) {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "if (#{@cond.generate_src(indent)}) {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -213,10 +245,10 @@ class CFor
         @body = body
     end
     def generate_src(indent)
-        indent.start do
-            add "for (#{@init.generate_src(indent)};#{@cond.generate_src(indent)};#{@update.generate_src(indent)}) {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "for (#{@init.generate_src(indent)};#{@cond.generate_src(indent)};#{@update.generate_src(indent)}) {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -228,10 +260,10 @@ class CWhile
         @body = body
     end
     def generate_src(indent)
-        indent.start do
-            add "while (#{@cond.generate_src(indent)}) {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "while (#{@cond.generate_src(indent)}) {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -243,10 +275,10 @@ class CDo
         @body = body
     end
     def generate_src(indent)
-        indent.start do
-            add "do {"
-            add body_to_src(indent, @body)
-            add "} while (#{@cond.generate_src(indent)})"
+        indent.start do |s|
+            s.add "do {"
+            s.add body_to_src(indent, @body)
+            s.add "} while (#{@cond.generate_src(indent)})"
         end
     end
 end
@@ -304,8 +336,8 @@ class CFPrototype
         if @pointer
             pointerstr = "*"
         end
-        indent.start do
-            add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)});"
+        indent.start do |s|
+            s.add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)});"
         end
     end
 end
@@ -324,10 +356,10 @@ class CFunction
         if @pointer
             pointerstr = "*"
         end
-        indent.start do
-            add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)}) {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(indent, @args)}) {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -343,10 +375,10 @@ class CUnion
         if @name
             namestr = " #{@name}"
         end
-        indent.start do
-            add "union#{namestr} {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "union#{namestr} {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -362,10 +394,10 @@ class CStruct
         if @name
             namestr = " #{@name}"
         end
-        indent.start do
-            add "struct#{namestr} {"
-            add body_to_src(indent, @body)
-            add "}"
+        indent.start do |s|
+            s.add "struct#{namestr} {"
+            s.add body_to_src(indent, @body)
+            s.add "}"
         end
     end
 end
@@ -538,7 +570,15 @@ class Lexer
         end
     end
     def args_inside(parser)
-        (parser >> (expect(",") >> parser).repeat).opt
+        ((parser >> (expect(",") >> parser).repeat).opt).map do |parsed|
+            if !parsed
+                parsed
+            elsif parsed.size > 1
+                parsed[1].insert(0, parsed[0])
+            else
+                parsed
+            end
+        end
     end
     def fcall
         (ident >> expect("(") >> args_inside(expr) >> expect(")")).map do |parsed|
@@ -599,7 +639,8 @@ class Lexer
     end
     def cdo
         (expect("do") >> block >> expect("while") >> expect("(") >> expr >> expect(")")).map do |parsed|
-            body = parsed[0]
+            body = parsed[0..-2]
+            p parsed
             cond = parsed[1]
             CDo.new(cond, body)
         end

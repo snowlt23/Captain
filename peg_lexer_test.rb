@@ -34,9 +34,16 @@ lexer = Lexer.new()
 # p lexer.variable.exec("int a = 1")
 
 parsed = lexer.parse(File.read("example.c"))
-p parsed.type
-# p parsed.value
+# p parsed.type
+# # p parsed.value
+# for e in parsed.value
+#     p e
+#     print "\n"
+# end
+
+s = ""
+indent = Indent.new()
 for e in parsed.value
-    p e
-    print "\n"
+    s += e.generate_src(indent) + "\n"
 end
+puts s

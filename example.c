@@ -48,6 +48,7 @@ int main() {
     }
     do {
         printf("%d\n", a);
+        printf("%d\n", b);
     } while (false);
     return 0;
 }
