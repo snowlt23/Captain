@@ -4,9 +4,12 @@ require 'pp'
 
 lexer = Lexer.new()
 
+# string_parsed = lexer.string.parse("\"test\"", 0)
+# puts string_parsed.type
+# puts string_parsed.pos
+# p string_parsed.value
+
 parsed = lexer.parse(File.read("example.c"))
-# p parsed.type
-# # p parsed.value
 for e in parsed.value
     pp e
     print "\n"

@@ -62,13 +62,13 @@ $operators = [
     "<",
     ">",
     "?",
-    "!"
+    "!",
 ]
 
 $spaces = [
     " ",
     "\n",
-    "\t"
+    "\t",
 ]
 
 $separates = [
@@ -80,7 +80,8 @@ $separates = [
     ")",
     ",",
     ";",
-    ":"
+    ":",
+    "\"",
 ]
 
 $special_tokens = $separates + $spaces + $operators
@@ -547,7 +548,7 @@ class Lexer
             while true
                 c = get(input, pos, 1)
                 if !c
-                    next Result.failure
+                    break
                 elsif c == "\"" && escape_flag
                     s += "\""
                 elsif c == "\""
@@ -555,6 +556,9 @@ class Lexer
                     break
                 elsif c == "\\"
                     escape_flag = true
+                elsif escape_flag
+                    s += "\\" + c
+                    escape_flag = false
                 else
                     s += c
                     escape_flag = false
