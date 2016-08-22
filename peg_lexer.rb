@@ -11,7 +11,7 @@ def args_to_src(indent, args)
 end
 
 def body_to_src(indent, body)
-    indent.start do |fs|
+    indent.gen + indent.start do |fs|
         for e in body
             fs.add e.generate_src(indent) + ";"
         end
@@ -91,21 +91,17 @@ class FormatString
         @indent = indent
         @strings = []
     end
-    def get
-        @strings.join("\n")
-    end
     def gen
-        s = ""
-        for i in 0..@indent.num-1
-            s += @indent.indent
-        end
-        s
+        @indent.gen
+    end
+    def get
+        @strings.join("\n").sub(Regexp.new(self.gen), "")
     end
     def add(s)
         if @indent.compress
-            @strings.push(s)
+            @strings.push(self.gen + s)
         else
-            @strings.push(self.gen() + s)
+            @strings.push(self.gen + s)
         end
     end
     def add_body(s)
@@ -119,6 +115,13 @@ class Indent
         @num = 0
         @indent = indent
         @compress = compress
+    end
+    def gen
+        s = ""
+        for i in 0..@num-1
+            s += @indent
+        end
+        s
     end
     def start
         fs = FormatString.new(self)
@@ -617,7 +620,7 @@ class Lexer
         end
     end
     def body
-        (expr >> expect(";").opt).repeat
+        (expr >> expect(";").opt.garbage).repeat
     end
     def block
         expect("{") >> body >> expect("}")
@@ -676,7 +679,11 @@ class Lexer
     end
     def exprarray
         primexpr.repeat1.map do |parsed|
-            CExprArray.new(parsed)
+            if parsed.size == 1
+                parsed[0]
+            else
+                CExprArray.new(parsed)
+            end
         end
     end
     def parenexpr
@@ -685,7 +692,7 @@ class Lexer
         end
     end
     def expr
-        lazy(lambda { parenexpr / exprarray })
+        lazy(lambda { statement / parenexpr / exprarray })
     end
     def global
         (variable >> expect(";")).map do |parsed|
@@ -731,7 +738,7 @@ class Lexer
             CStruct.new(name, body)
         end
     end
-    def toptype
+    def top_type_decl
         (struct / union) >> expect(";")
     end
     # def extern
@@ -739,7 +746,7 @@ class Lexer
     # def typedef
     # end
     def declare
-        toptype / global / fprototype / function
+        top_type_decl / global / fprototype / function
     end
     def toplevel
         declare.repeat
