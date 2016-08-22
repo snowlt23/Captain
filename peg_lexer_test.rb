@@ -14,6 +14,6 @@ parsed = lexer.parse(File.read("example.c"))
 s = "\n"
 indent = Indent.new()
 for e in parsed.value
-    s += e.generate_src(indent) + "\n"
+    s += e.generate_src(indent) + "\n\n"
 end
 puts s

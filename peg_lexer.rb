@@ -86,10 +86,13 @@ $separates = [
 $special_tokens = $separates + $spaces + $operators
 
 class FormatString
-    attr_accessor :str
+    attr_accessor :strings
     def initialize(indent)
         @indent = indent
-        @str = ""
+        @strings = []
+    end
+    def get
+        @strings.join("\n")
     end
     def gen
         s = ""
@@ -100,13 +103,13 @@ class FormatString
     end
     def add(s)
         if @indent.compress
-            @str += s
+            @strings.push(s)
         else
-            @str += self.gen() + s + "\n"
+            @strings.push(self.gen() + s)
         end
     end
     def add_body(s)
-        @str += s
+        @strings.push(s)
     end
 end
 
@@ -120,7 +123,7 @@ class Indent
     def start
         fs = FormatString.new(self)
         yield(fs)
-        fs.str
+        fs.get()
     end
     def block
         @num += 1
