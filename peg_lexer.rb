@@ -223,29 +223,43 @@ class CFCall
     end
 end
 
-class CVariable
-    attr_accessor :const, :type, :pointer, :name, :value
-    def initialize(const, type, pointer, name, value)
+class CType
+    def initialize(const, prefix, name, pointer)
         @const = const
-        @type = type
-        @pointer = pointer
+        @prefix = prefix
         @name = name
-        @value = value
+        @pointer = pointer
     end
     def generate_src(indent)
         conststr = ""
         if @const
             conststr = "const "
         end
+        prefixstr = ""
+        if @prefix
+            prefixstr = "#{@prefix} "
+        end
         pointerstr = ""
         if @pointer
             pointerstr = "*"
         end
+        "#{conststr}#{prefixstr}#{@name}#{pointerstr}"
+    end
+end
+
+class CVariable
+    attr_accessor :const, :type, :pointer, :name, :value
+    def initialize(type, name, value)
+        @type = type
+        @name = name
+        @value = value
+    end
+    def generate_src(indent)
         valuestr = ""
         if @value
             valuestr = " = #{@value.generate_src(indent)}"
         end
-        "#{conststr}#{@type}#{pointerstr} #{@name}#{valuestr}"
+        "#{@type.generate_src(indent)} #{@name}#{valuestr}"
     end
 end
 
@@ -363,39 +377,29 @@ end
 
 class CFPrototype
     attr_accessor :ret, :pointer, :name, :args
-    def initialize(ret, pointer, name, args)
+    def initialize(ret, name, args)
         @ret = ret
-        @pointer = pointer
         @name = name
         @args = args
     end
     def generate_src(indent)
-        pointerstr = ""
-        if @pointer
-            pointerstr = "*"
-        end
         indent.start do |fs|
-            fs.add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(@args)});"
+            fs.add "#{@ret.generate_src(indent)} #{@name}(#{args_to_src(@args)});"
         end
     end
 end
 
 class CFunction
     attr_accessor :ret, :pointer, :name, :args, :body
-    def initialize(ret, pointer, name, args, body)
+    def initialize(ret, name, args, body)
         @ret = ret
-        @pointer = pointer
         @name = name
         @args = args
         @body = body
     end
     def generate_src(indent)
-        pointerstr = ""
-        if @pointer
-            pointerstr = "*"
-        end
         indent.start do |fs|
-            fs.add "#{@ret}#{pointerstr} #{@name}(#{args_to_src(indent, @args)}) {"
+            fs.add "#{@ret.generate_src(indent)} #{@name}(#{args_to_src(indent, @args)}) {"
             indent.block do
                 fs.add_body body_to_src(indent, @body)
             end
@@ -634,14 +638,35 @@ class Lexer
             CFCall.new(name, args)
         end
     end
-    def variable
-        (next_if("const") >> ident >> next_if("*") >> ident >> (expect("=") >> expr).opt).map do |parsed|
+    def type
+        (next_if("const") >>
+        next_if("struct") >> next_if("union") >> next_if("enum") >>
+        ident >> next_if("*")).map do |parsed|
             const = parsed[0]
-            type = parsed[1]
-            pointer = parsed[2]
-            name = parsed[3]
-            value = parsed[4]
-            CVariable.new(const, type, pointer, name, value)
+
+            struct = parsed[1]
+            union = parsed[2]
+            enum = parsed[3]
+            prefix = nil
+            if struct
+                prefix = "struct"
+            elsif union
+                prefix = "union"
+            elsif enum
+                prefix = "enum"
+            end
+
+            name = parsed[4]
+            pointer = parsed[5]
+            CType.new(const, prefix, name, pointer)
+        end
+    end
+    def variable
+        (type >> ident >> (expect("=") >> expr).opt).map do |parsed|
+            type = parsed[0]
+            name = parsed[1]
+            value = parsed[2]
+            CVariable.new(type, name, value)
         end
     end
     def body
@@ -725,25 +750,23 @@ class Lexer
         end
     end
     def fdecl
-        ident >> next_if("*") >> ident >> expect("(") >> args_inside(variable) >> expect(")")
+        type >> ident >> expect("(") >> args_inside(variable) >> expect(")")
     end
     def fprototype
         (fdecl >> expect(";")).map do |parsed|
             ret = parsed[0]
-            pointer = parsed[1]
-            name = parsed[2]
-            args = parsed[3]
-            CFPrototype.new(ret, pointer, name, args)
+            name = parsed[1]
+            args = parsed[2]
+            CFPrototype.new(ret, name, args)
         end
     end
     def function
         (fdecl >> block).map do |parsed|
             ret = parsed[0]
-            pointer = parsed[1]
-            name = parsed[2]
-            args = parsed[3]
-            body = parsed[4]
-            CFunction.new(ret, pointer, name, args, body)
+            name = parsed[1]
+            args = parsed[2]
+            body = parsed[3]
+            CFunction.new(ret, name, args, body)
         end
     end
     def typebody
