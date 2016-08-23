@@ -11,7 +11,11 @@ def args_to_src(indent, args)
 end
 
 def body_to_src(indent, body)
-    indent.gen + indent.start do |fs|
+    first = ""
+    if !indent.compress
+        first = indent.gen
+    end
+    first + indent.start do |fs|
         for e in body
             fs.add e.generate_src(indent) + ";"
         end
@@ -24,6 +28,19 @@ def is_num?(s)
     else
         return false
     end
+end
+
+def top_generate_src(parsed, compress: false)
+    s = ""
+    indent = Indent.new(compress: compress)
+    for e in parsed.value
+        if compress
+            s += e.generate_src(indent)
+        else
+            s += e.generate_src(indent) + "\n\n"
+        end
+    end
+    s
 end
 
 $operators = [
@@ -96,11 +113,15 @@ class FormatString
         @indent.gen
     end
     def get
-        @strings.join("\n").sub(Regexp.new(self.gen), "")
+        if @indent.compress
+            @strings.join("").sub(Regexp.new(self.gen), "")
+        else
+            @strings.join("\n").sub(Regexp.new(self.gen), "")
+        end
     end
     def add(s)
         if @indent.compress
-            @strings.push(self.gen + s)
+            @strings.push(s)
         else
             @strings.push(self.gen + s)
         end
