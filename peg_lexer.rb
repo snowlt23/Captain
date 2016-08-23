@@ -370,6 +370,17 @@ class CReturn
     end
 end
 
+class CCast
+    attr_accessor :type
+    def initialize(type, target)
+        @type = type
+        @target = target
+    end
+    def generate_src(indent)
+        "(#{@type.generate_src(indent)})#{@target.generate_src(indent)}"
+    end
+end
+
 class CExprArray
     attr_accessor :exprs
     def initialize(exprs)
@@ -819,6 +830,11 @@ class Lexer
             CReturn.new(parsed)
         end
     end
+    def cast
+        (expect("(") >> type >> expect(")") >> lazy(lambda{exprarray})).map do |parsed|
+            CCast.new(parsed[0], parsed[1])
+        end
+    end
     def primexpr
         statement / number / string / character / operator / variable / fcall / creturn / init_expr / ident / lazy(lambda{parenexpr})
     end
@@ -832,7 +848,7 @@ class Lexer
         end
     end
     def parenexpr
-        (expect("(") >> exprarray >> expect(")")).map do |parsed|
+        cast / (expect("(") >> exprarray >> expect(")")).map do |parsed|
             CParen.new(parsed)
         end
     end
