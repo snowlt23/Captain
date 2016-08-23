@@ -20,14 +20,14 @@ int add(const int* a, const int* b) {
 
 const char MAGIC = L"FFFFFFFF";
 
-struct Actor {
+typedef struct _tagActor {
     int x;
     int y;
     union {
         void* id;
         void* name;
     };
-};
+} Actor;
 
 enum ActorID {
     GLOBAL,

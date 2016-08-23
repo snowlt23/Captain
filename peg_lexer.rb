@@ -402,6 +402,17 @@ class CGlobal
     end
 end
 
+class CTypedef
+    attr_accessor :from, :to
+    def initialize(from, to)
+        @from = from
+        @to = to
+    end
+    def generate_src(indent)
+        "typedef #{@from.generate_src(indent)} #{@to.generate_src(indent)};"
+    end
+end
+
 class CFPrototype
     attr_accessor :ret, :pointer, :name, :args
     def initialize(ret, name, args)
@@ -881,17 +892,25 @@ class Lexer
             CEnum.new(name, body)
         end
     end
+    def toptype
+        struct / union / enum / type
+    end
     def global
         ((struct / union / enum / variable) >> expect(";")).map do |parsed|
             CGlobal.new(parsed)
         end
     end
+    def typedef
+        (expect("typedef") >> toptype >> ident >> expect(";")).map do |parsed|
+            from = parsed[0]
+            to = parsed[1]
+            CTypedef.new(from, to)
+        end
+    end
     # def extern
     # end
-    # def typedef
-    # end
     def declare
-        global / fprototype / function
+        typedef / global / fprototype / function
     end
     def toplevel
         declare.repeat
