@@ -35,6 +35,9 @@ enum ActorID {
     PLAYER,
 };
 
+extern void test(char*);
+extern int i;
+
 int main() {
     int a = 1;
     int b = 2.0;

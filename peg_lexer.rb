@@ -424,6 +424,16 @@ class CTypedef
     end
 end
 
+class CExtern
+    attr_accessor :expr
+    def initialize(expr)
+        @expr = expr
+    end
+    def generate_src(indent)
+        "extern #{@expr.generate_src(indent)}"
+    end
+end
+
 class CFPrototype
     attr_accessor :ret, :pointer, :name, :args
     def initialize(ret, name, args)
@@ -433,7 +443,7 @@ class CFPrototype
     end
     def generate_src(indent)
         indent.start do |fs|
-            fs.add "#{@ret.generate_src(indent)} #{@name}(#{args_to_src(@args)});"
+            fs.add "#{@ret.generate_src(indent)} #{@name}(#{args_to_src(indent, @args)});"
         end
     end
 end
@@ -856,7 +866,7 @@ class Lexer
         lazy(lambda { statement / parenexpr / exprarray })
     end
     def fdecl
-        type >> ident >> expect("(") >> args_inside(variable) >> expect(")")
+        type >> ident >> expect("(") >> args_inside(variable / type) >> expect(")")
     end
     def fprototype
         (fdecl >> expect(";")).map do |parsed|
@@ -923,10 +933,13 @@ class Lexer
             CTypedef.new(from, to)
         end
     end
-    # def extern
-    # end
+    def extern
+        (expect("extern") >> (fprototype / global)).map do |parsed|
+            CExtern.new(parsed)
+        end
+    end
     def declare
-        typedef / global / fprototype / function
+        typedef / extern / global / fprototype / function
     end
     def toplevel
         declare.repeat
