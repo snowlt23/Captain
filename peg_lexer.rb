@@ -223,6 +223,16 @@ class CFCall
     end
 end
 
+class CInitExpr
+    attr_accessor :exprs
+    def initialize(exprs)
+        @exprs = exprs
+    end
+    def generate_src(indent)
+        "{ #{args_to_src(indent, @exprs)} }"
+    end
+end
+
 class CType
     def initialize(const, prefix, name, pointer)
         @const = const
@@ -621,7 +631,7 @@ class Lexer
         end
     end
     def args_inside(parser)
-        ((parser >> (expect(",") >> parser).repeat).opt).map do |parsed|
+        ((parser >> (expect(",") >> parser).repeat).opt >> expect(",").opt.garbage).map do |parsed|
             if !parsed
                 parsed
             elsif parsed.size > 1
@@ -636,6 +646,11 @@ class Lexer
             name = parsed[0]
             args = parsed[1]
             CFCall.new(name, args)
+        end
+    end
+    def init_expr
+        (expect("{") >> args_inside(expr) >> expect("}")).map do |parsed|
+            CInitExpr.new(parsed)
         end
     end
     def type
@@ -725,7 +740,7 @@ class Lexer
         end
     end
     def primexpr
-        statement / number / string / character / operator / fcall / creturn / variable / ident / lazy(lambda{parenexpr})
+        statement / number / string / character / operator / fcall / creturn / init_expr / variable / ident / lazy(lambda{parenexpr})
     end
     def exprarray
         primexpr.repeat1.map do |parsed|
