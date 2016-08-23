@@ -29,6 +29,12 @@ struct Actor {
     };
 };
 
+enum ActorID {
+    GLOBAL,
+    SPECIAL = 1,
+    PLAYER,
+};
+
 int main() {
     int a = 1;
     int b = 2.0;

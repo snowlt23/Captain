@@ -427,10 +427,10 @@ class CUnion
     def generate_src(indent)
         namestr = ""
         if @name
-            namestr = " #{@name}"
+            namestr = "#{@name} "
         end
         indent.start do |fs|
-            fs.add "union#{namestr} {"
+            fs.add "union #{namestr}{"
             indent.block do
                 fs.add_body body_to_src(indent, @body)
             end
@@ -448,10 +448,46 @@ class CStruct
     def generate_src(indent)
         namestr = ""
         if @name
-            namestr = " #{@name}"
+            namestr = "#{@name} "
         end
         indent.start do |fs|
-            fs.add "struct#{namestr} {"
+            fs.add "struct #{namestr}{"
+            indent.block do
+                fs.add_body body_to_src(indent, @body)
+            end
+            fs.add "}"
+        end
+    end
+end
+
+class CEnumValue
+    attr_accessor :name, :value
+    def initialize(name, value)
+        @name = name
+        @value = value
+    end
+    def generate_src(indent)
+        valuestr = ""
+        if @value
+            valuestr = " = #{@value.generate_src(indent)}"
+        end
+        "#{@name.generate_src(indent)}#{valuestr}"
+    end
+end
+
+class CEnum
+    attr_accessor :name, :body
+    def initialize(name, body)
+        @name = name
+        @body = body
+    end
+    def generate_src(indent)
+        namestr = ""
+        if @name
+            namestr = "#{@name} "
+        end
+        indent.start do |fs|
+            fs.add "enum #{namestr}{"
             indent.block do
                 fs.add_body body_to_src(indent, @body)
             end
@@ -801,8 +837,24 @@ class Lexer
             CStruct.new(name, body)
         end
     end
+    def enum_value
+        (ident >> (expect("=") >> integer).opt).map do |parsed|
+            name = parsed[0]
+            value = parsed[1]
+            CEnumValue.new(name, value)
+        end
+    end
+    def enum
+        (expect("enum") >> ident.opt >> expect("{") >>
+        args_inside(enum_value) >>
+        expect("}")).map do |parsed|
+            name = parsed[0]
+            body = parsed[1]
+            CEnum.new(name, body)
+        end
+    end
     def top_type_decl
-        (struct / union) >> expect(";")
+        (struct / union / enum) >> expect(";")
     end
     # def extern
     # end
