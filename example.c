@@ -40,6 +40,7 @@ int main() {
     int b = 2.0;
     unsigned char max = 255;
     char c = 't';
+    int (*f)(int, int) = &add;
     struct Actor* actor = { 0, 0, &c };
     a += add(1, 2 + (1 - 1));
     for (int i = 0; i < 10; i++) {

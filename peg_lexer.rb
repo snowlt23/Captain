@@ -273,6 +273,23 @@ class CVariable
     end
 end
 
+class CFPointer
+    attr_accessor :ret, :name, :args
+    def initialize(ret, name, args, value)
+        @ret = ret
+        @name = name
+        @args = args
+        @value = value
+    end
+    def generate_src(indent)
+        valuestr = ""
+        if @value
+            valuestr = " = #{@value.generate_src(indent)}"
+        end
+        "#{ret.generate_src(indent)} (*#{@name.generate_src(indent)})(#{args_to_src(indent, @args)})#{valuestr}"
+    end
+end
+
 class CIf
     attr_accessor :cond, :body
     def initialize(cond, body)
@@ -724,6 +741,16 @@ class Lexer
             name = parsed[1]
             value = parsed[2]
             CVariable.new(type, name, value)
+        end / fpointer
+    end
+    def fpointer
+        (type >> expect("(") >> expect("*") >> ident >> expect(")") >>
+        expect("(") >> args_inside(lazy(lambda{variable}) / type) >> expect(")") >> (expect("=") >> expr).opt).map do |parsed|
+            ret = parsed[0]
+            name = parsed[1]
+            args = parsed[2]
+            value = parsed[3]
+            CFPointer.new(ret, name, args, value)
         end
     end
     def body
@@ -782,7 +809,7 @@ class Lexer
         end
     end
     def primexpr
-        statement / number / string / character / operator / fcall / creturn / init_expr / variable / ident / lazy(lambda{parenexpr})
+        statement / number / string / character / operator / variable / fcall / creturn / init_expr / ident / lazy(lambda{parenexpr})
     end
     def exprarray
         primexpr.repeat1.map do |parsed|
@@ -800,11 +827,6 @@ class Lexer
     end
     def expr
         lazy(lambda { statement / parenexpr / exprarray })
-    end
-    def global
-        (variable >> expect(";")).map do |parsed|
-            CGlobal.new(parsed)
-        end
     end
     def fdecl
         type >> ident >> expect("(") >> args_inside(variable) >> expect(")")
@@ -859,15 +881,17 @@ class Lexer
             CEnum.new(name, body)
         end
     end
-    def top_type_decl
-        (struct / union / enum) >> expect(";")
+    def global
+        ((struct / union / enum / variable) >> expect(";")).map do |parsed|
+            CGlobal.new(parsed)
+        end
     end
     # def extern
     # end
     # def typedef
     # end
     def declare
-        top_type_decl / global / fprototype / function
+        global / fprototype / function
     end
     def toplevel
         declare.repeat

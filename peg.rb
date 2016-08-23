@@ -207,9 +207,9 @@ module PEG
                 parsed.join("")
             end
         end
-        def print # mapper
+        def debug_print # mapper
             self.map do |parsed|
-                puts parsed
+                p parsed
                 parsed
             end
         end
