@@ -38,6 +38,7 @@ enum ActorID {
 int main() {
     int a = 1;
     int b = 2.0;
+    unsigned char max = 255;
     char c = 't';
     struct Actor* actor = { 0, 0, &c };
     a += add(1, 2 + (1 - 1));

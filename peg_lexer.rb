@@ -691,13 +691,15 @@ class Lexer
     end
     def type
         (next_if("const") >>
-        next_if("struct") >> next_if("union") >> next_if("enum") >>
+        next_if("struct") >> next_if("union") >> next_if("enum") >> next_if("unsigned") >> next_if("signed") >>
         ident >> next_if("*")).map do |parsed|
             const = parsed[0]
 
             struct = parsed[1]
             union = parsed[2]
             enum = parsed[3]
+            unsigned = parsed[4]
+            signed = parsed[5]
             prefix = nil
             if struct
                 prefix = "struct"
@@ -705,10 +707,14 @@ class Lexer
                 prefix = "union"
             elsif enum
                 prefix = "enum"
+            elsif unsigned
+                prefix = "unsigned"
+            elsif signed
+                prefix = "signed"
             end
 
-            name = parsed[4]
-            pointer = parsed[5]
+            name = parsed[6]
+            pointer = parsed[7]
             CType.new(const, prefix, name, pointer)
         end
     end
