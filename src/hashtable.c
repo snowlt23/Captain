@@ -26,6 +26,8 @@ typedef enum {
 typedef struct {
     ResultType type;
     bool value;
+    int list_index;
+    int link_index;
 } GetResult;
 
 #endif
@@ -75,12 +77,16 @@ void set_hashtable(HashTable* table, void* key, bool value) {
         table->lists[index] = create_list(key, value);
     } else {
         List* list = table->lists[index];
-        if (list->key = key) {
-            list->value = value;
-        } else if (list->next == NULL) {
-            list->next = create_list(key, value);
-        } else {
-            list = list->next;
+        for (;;) {
+            if (list->key == key) {
+                list->value = value;
+                break;
+            } else if (list->next == NULL) {
+                list->next = create_list(key, value);
+                break;
+            } else {
+                list = list->next;
+            }
         }
     }
 }
@@ -93,17 +99,76 @@ GetResult get_hashtable(HashTable* table, void* key) {
         return result;
     } else {
         List* list = table->lists[index];
-        if (list->key = key) {
-            GetResult result;
-            result.type = SUCCESS;
-            result.value = list->value;
-            return result;
-        } else if (list->next == NULL) {
-            GetResult result;
-            result.type = FAILURE;
-            return result;
+        int link_index = 0;
+        for (;;) {
+            if (list->key = key) {
+                GetResult result;
+                result.type = SUCCESS;
+                result.value = list->value;
+                result.list_index = index;
+                result.link_index = link_index;
+                return result;
+            } else if (list->next == NULL) {
+                GetResult result;
+                result.type = FAILURE;
+                return result;
+            } else {
+                list = list->next;
+                link_index++;
+            }
+        }
+    }
+}
+
+void erase_hashtable(HashTable* table, GetResult result) {
+    List* list = table->lists[result.list_index];
+    List* prev_list = NULL;
+    for (int i = 0; i < result.link_index; i++) {
+        prev_list = list;
+        list = list->next;
+    }
+    if (prev_list == NULL) {
+        List* next = list->next;
+        list->next = NULL;
+        delete_list(list);
+        if (next == NULL) {
+            table->lists[result.list_index] = NULL;
         } else {
-            list = list->next;
+            table->lists[result.list_index] = next;
+        }
+    } else {
+        List* next = list->next;
+        list->next = NULL;
+        delete_list(list);
+        if (next == NULL) {
+            prev_list->next = NULL;
+        } else {
+            prev_list->next = next;
+        }
+    }
+}
+
+void hashtable_for(HashTable* table, void (*f)(HashTable*, List*, GetResult)) {
+    for (int i = 0; i < table->tablesize; i++) {
+        if (table->lists[i] == NULL) {
+            continue;
+        } else {
+            List* list = table->lists[i];
+            int link_index = 0;
+            for (;;) {
+                GetResult result;
+                result.type = SUCCESS;
+                result.value = list->value;
+                result.list_index = i;
+                result.link_index = link_index;
+                f(table, list, result);
+                if (list->next == NULL) {
+                    break;
+                } else {
+                    list = list->next;
+                    link_index++;
+                }
+            }
         }
     }
 }

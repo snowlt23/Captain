@@ -17,6 +17,16 @@ TEST hashtable_test() {
     delete_hashtable(table);
 }
 
+TEST gc_test() {
+    int start;
+    gc_init(&start);
+    void* a = gc_malloc(10);
+    void* b = gc_malloc(10);
+    a = NULL;
+    gc_collect();
+}
+
 SUITE(main_suite) {
     RUN_TEST(hashtable_test);
+    RUN_TEST(gc_test);
 }
