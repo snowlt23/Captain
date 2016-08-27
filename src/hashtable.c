@@ -7,9 +7,15 @@
 
 #include <stdbool.h>
 
+typedef struct {
+    size_t size;
+    bool marked;
+    bool scan;
+} HeapInfo;
+
 typedef struct _tagList {
     void* key;
-    bool value;
+    HeapInfo value;
     struct _tagList* next;
 } List;
 
@@ -25,14 +31,14 @@ typedef enum {
 
 typedef struct {
     ResultType type;
-    bool value;
+    HeapInfo value;
     int list_index;
     int link_index;
 } GetResult;
 
 #endif
 
-List* create_list(void* key, bool value) {
+List* create_list(void* key, HeapInfo value) {
     List* list = malloc(sizeof(List));
     list->key = key;
     list->value = value;
@@ -71,7 +77,7 @@ uintptr_t calc_hash(HashTable* table, void* key) {
     return (uintptr_t)key % (uintptr_t)table->tablesize;
 }
 
-void set_hashtable(HashTable* table, void* key, bool value) {
+void set_hashtable(HashTable* table, void* key, HeapInfo value) {
     uintptr_t index = calc_hash(table, key);
     if (table->lists[index] == NULL) {
         table->lists[index] = create_list(key, value);
@@ -161,11 +167,12 @@ void hashtable_for(HashTable* table, void (*f)(HashTable*, List*, GetResult)) {
                 result.value = list->value;
                 result.list_index = i;
                 result.link_index = link_index;
+                List* next = list->next;
                 f(table, list, result);
-                if (list->next == NULL) {
+                if (next == NULL) {
                     break;
                 } else {
-                    list = list->next;
+                    list = next;
                     link_index++;
                 }
             }
