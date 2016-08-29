@@ -93,12 +93,12 @@ void* gc_realloc_unscan(void* ptr, size_t size) {
     return gc_realloc_inside(ptr, size, false);
 }
 
-void gc_malloc_reset(HashTable* table, List* list, GetResult result) {
+void gc_malloc_reset(HashTable* table, List* list) {
     list->value.marked = false;
 }
 
 void gc_mark(void** start, void** end) {
-    for (void** p = start; p > end; p--) {
+    for (void** p = start; p < end; p++) {
         GetResult result = get_hashtable(mallocs, *p);
         if (result.type == SUCCESS && result.value.marked == false) {
             HeapInfo marked_hi = result.value;
@@ -106,7 +106,7 @@ void gc_mark(void** start, void** end) {
             set_hashtable(mallocs, *p, marked_hi);
             if (result.value.scan) {
                 void** pp = (void**)*p;
-                gc_mark(pp, pp + result.value.size);
+                gc_mark(pp, pp + result.value.size / sizeof(void*));
             }
         }
     }

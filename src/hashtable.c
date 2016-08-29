@@ -58,7 +58,7 @@ void delete_single_list(List* list) {
     free(list);
 }
 
-HashTable* create_hashtable(int tablesize) {
+HashTable* create_hashtable(size_t tablesize) {
     HashTable* table = malloc(sizeof(HashTable));
     table->lists = malloc(sizeof(List*) * tablesize);
     for (int i = 0; i < tablesize; i++) {
@@ -95,9 +95,8 @@ void set_hashtable(HashTable* table, void* key, HeapInfo value) {
             } else if (list->next == NULL) {
                 list->next = create_list(key, value);
                 break;
-            } else {
-                list = list->next;
             }
+            list = list->next;
         }
     }
 }
@@ -143,7 +142,7 @@ void erase_hashtable(HashTable* table, GetResult result) {
     }
 }
 
-void hashtable_for(HashTable* table, void (*f)(HashTable*, List*, GetResult)) {
+void hashtable_for(HashTable* table, void (*f)(HashTable* table, List* list)) {
     for (int i = 0; i < table->tablesize; i++) {
         if (table->lists[i] == NULL) {
             continue;
@@ -151,18 +150,12 @@ void hashtable_for(HashTable* table, void (*f)(HashTable*, List*, GetResult)) {
             List* prev = NULL;
             List* list = table->lists[i];
             for (;;) {
-                GetResult result;
-                result.type = SUCCESS;
-                result.value = list->value;
-                result.prev_list = prev;
-                result.current_list = list;
-                result.index = i;
-                f(table, list, result);
                 List* next = list->next;
+                f(table, list);
                 if (next == NULL) {
                     break;
                 } else {
-                    prev = list;
+                    prev = next;
                     list = next;
                 }
             }
