@@ -158,19 +158,26 @@ Token get_token(Tokenizer* tokenizer) {
         } break;
 
         case '"': {
-            char* start = tokenizer->at;
-            int len = 0;
+            char* s = "";
             while (tokenizer->at[0] && tokenizer->at[0] != '"') {
-                if (tokenizer->at[0] == '\\' && tokenizer->at[1]) {
+                if (tokenizer->at[0] == '\n') {
+                    s = string_concat(s, "\\n");
+                } else if (tokenizer->at[0] == '\t') {
+                    s = string_concat(s, "\\t");
+                } else if (tokenizer->at[0] == '\r') {
+                    s = string_concat(s, "\\r");
+                } else if (tokenizer->at[0] == '\\' && tokenizer->at[1]) {
+                    s = string_concat(s, "\\\"");
+                    s = string_concat(s, string_sub(tokenizer->at, 0, 1));
                     tokenizer->at++;
-                    len++;
+                } else {
+                    s = string_concat(s, string_sub(tokenizer->at, 0, 1));
                 }
                 tokenizer->at++;
-                len++;
             }
             tokenizer->at++;
             token.type = TokenString;
-            token.text = string_sub(start, 0, len);
+            token.text = s;
         } break;
 
         default: {
