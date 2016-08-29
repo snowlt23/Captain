@@ -106,7 +106,7 @@ void gc_sweep(HashTable* table, List* list, GetResult result) {
     if (list->value.marked == false) {
         GC_DEALLOCATOR(list->key);
         allocated_size -= result.value.size;
-        erase_hashtable(table, result);
+        erase_hashtable(table, result); // FIXME: gc_sweep erase_hashtable (segmentation fault)
     }
 }
 
