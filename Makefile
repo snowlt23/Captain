@@ -1,9 +1,15 @@
 
 CC = gcc
 OPT = -std=c99
-INCLUDES = -Iinclude/
+
+INCLUDES =
+INCLUDES += -Iinclude/
+
 SRCS = src/*.c
 TESTS = test/*.c
+
+build: gen-header
+	$(CC) -o dist/captain $(OPT) $(INCLUDES) $(SRCS) main/main.c
 
 test: gen-header gen-test-header
 	$(CC) -o dist/captain-test $(OPT) $(INCLUDES) $(SRCS) $(TESTS) main/test.c

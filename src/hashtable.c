@@ -32,8 +32,9 @@ typedef enum {
 typedef struct {
     ResultType type;
     HeapInfo value;
-    int list_index;
-    int link_index;
+    List* prev_list;
+    List* current_list;
+    int index;
 } GetResult;
 
 #endif
@@ -50,6 +51,10 @@ void delete_list(List* list) {
     if (list->next != NULL) {
         delete_list(list->next);
     }
+    free(list);
+}
+
+void delete_single_list(List* list) {
     free(list);
 }
 
@@ -104,53 +109,37 @@ GetResult get_hashtable(HashTable* table, void* key) {
         result.type = FAILURE;
         return result;
     } else {
+        List* prev = NULL;
         List* list = table->lists[index];
-        int link_index = 0;
         for (;;) {
             if (list->key = key) {
                 GetResult result;
                 result.type = SUCCESS;
                 result.value = list->value;
-                result.list_index = index;
-                result.link_index = link_index;
+                result.prev_list = prev;
+                result.current_list = list;
+                result.index = index;
                 return result;
             } else if (list->next == NULL) {
                 GetResult result;
                 result.type = FAILURE;
                 return result;
             } else {
+                prev = list;
                 list = list->next;
-                link_index++;
             }
         }
     }
 }
 
 void erase_hashtable(HashTable* table, GetResult result) {
-    List* list = table->lists[result.list_index];
-    List* prev_list = NULL;
-    for (int i = 0; i < result.link_index; i++) {
-        prev_list = list;
-        list = list->next;
-    }
-    if (prev_list == NULL) {
-        List* next = list->next;
-        list->next = NULL;
-        delete_list(list);
-        if (next == NULL) {
-            table->lists[result.list_index] = NULL;
-        } else {
-            table->lists[result.list_index] = next;
-        }
+    List* list = result.current_list;
+    List* next = list->next;
+    delete_single_list(list);
+    if (result.prev_list == NULL) {
+        table->lists[result.index] = next;
     } else {
-        List* next = list->next;
-        list->next = NULL;
-        delete_list(list);
-        if (next == NULL) {
-            prev_list->next = NULL;
-        } else {
-            prev_list->next = next;
-        }
+        result.prev_list->next = next;
     }
 }
 
@@ -159,21 +148,22 @@ void hashtable_for(HashTable* table, void (*f)(HashTable*, List*, GetResult)) {
         if (table->lists[i] == NULL) {
             continue;
         } else {
+            List* prev = NULL;
             List* list = table->lists[i];
-            int link_index = 0;
             for (;;) {
                 GetResult result;
                 result.type = SUCCESS;
                 result.value = list->value;
-                result.list_index = i;
-                result.link_index = link_index;
-                List* next = list->next;
+                result.prev_list = prev;
+                result.current_list = list;
+                result.index = i;
                 f(table, list, result);
+                List* next = list->next;
                 if (next == NULL) {
                     break;
                 } else {
+                    prev = list;
                     list = next;
-                    link_index++;
                 }
             }
         }

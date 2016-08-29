@@ -3,11 +3,21 @@
 #include <stdio.h>
 #include <captain.h>
 
-#define GC_HASHTABLE_SIZE 256
-#define GC_COLLECT_THRESHOLD 1024*1024
-#define GC_ALLOCATOR malloc
-#define GC_REALLOCATOR realloc
-#define GC_DEALLOCATOR free
+#ifndef GC_HASHTABLE_SIZE
+    #define GC_HASHTABLE_SIZE 256
+#endif
+#ifndef GC_COLLECT_THRESHOLD
+    #define GC_COLLECT_THRESHOLD 1024*1024
+#endif
+#ifndef GC_ALLOCATOR
+    #define GC_ALLOCATOR malloc
+#endif
+#ifndef GC_REALLOCATOR
+    #define GC_REALLOCATOR realloc
+#endif
+#ifndef GC_DEALLOCATOR
+    #define GC_DEALLOCATOR free
+#endif
 
 #if INTERFACE
 #include <stdint.h>
@@ -102,11 +112,33 @@ void gc_mark(void** start, void** end) {
     }
 }
 
-void gc_sweep(HashTable* table, List* list, GetResult result) {
-    if (list->value.marked == false) {
-        GC_DEALLOCATOR(list->key);
-        allocated_size -= result.value.size;
-        erase_hashtable(table, result); // FIXME: gc_sweep erase_hashtable (segmentation fault)
+void gc_sweep() {
+    for (int i = 0; i < mallocs->tablesize; i++) {
+        if (mallocs->lists[i] == NULL) {
+            continue;
+        } else {
+            List* prev = NULL;
+            List* list = mallocs->lists[i];
+            for (;;) {
+                List* next = list->next;
+                if (list->value.marked == false) {
+                    GC_DEALLOCATOR(list->key);
+                    allocated_size -= list->value.size;
+                    delete_single_list(list);
+                    if (prev == NULL) {
+                        mallocs->lists[i] = next;
+                    } else {
+                        prev->next = next;
+                    }
+                } else {
+                    prev = list;
+                }
+                if (next == NULL) {
+                    break;
+                }
+                list = next;
+            }
+        }
     }
 }
 
@@ -114,5 +146,5 @@ void gc_collect() {
     void *end;
     hashtable_for(mallocs, &gc_malloc_reset);
     gc_mark(stack_start, &end);
-    hashtable_for(mallocs, &gc_sweep);
+    gc_sweep();
 }
