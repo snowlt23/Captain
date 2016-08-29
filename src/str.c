@@ -38,8 +38,8 @@ string_concat("a", "b", "c") == "abc"
 */
 #define string_concat(...) \
     string_concat_inside( \
-        (char*){ __VA_ARGS__ }, \
-        sizeof((char*){ __VA_ARGS__ }) / sizeof(char*) \
+        (char*[]){ __VA_ARGS__ }, \
+        sizeof((char*[]){ __VA_ARGS__ }) / sizeof(char*) \
     )
 #endif
 
