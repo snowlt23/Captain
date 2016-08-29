@@ -3,3 +3,7 @@
 !include/.gitkeep
 /dist/*
 !dist/.gitkeep
+/thirdparty/*
+!thirdparty/.gitkeep
+/shares/*
+!shares/.gitkeep

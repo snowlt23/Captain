@@ -35,7 +35,6 @@ void gc_init(int *pargc) {
 }
 
 void gc_threshold() {
-    printf("%d\n", allocated_size);
     if (allocated_size > GC_COLLECT_THRESHOLD) {
         gc_collect();
     }
