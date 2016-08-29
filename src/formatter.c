@@ -129,6 +129,7 @@ FormatOption create_formatopt(bool compress) {
     formatopt.compress = compress;
     formatopt.indent_num = 0;
     formatopt.indent_str = "    ";
+    return formatopt;
 }
 
 char* format_tokens(FormatOption formatopt, Tokens* tokens) {
@@ -157,11 +158,12 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
                 }
             } break;
             case TokenCloseBraces: {
-                dec_indent(&formatopt);
                 if (formatopt.compress) {
+                    dec_indent(&formatopt);
                     output = string_concat(output, "}");
                 } else {
                     int indent_len = strlen(generate_indent(formatopt));
+                    dec_indent(&formatopt);
                     output = string_sub(output, 0, -indent_len - 1);
                     output = string_concat(output, "}\n");
                 }

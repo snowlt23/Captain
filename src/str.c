@@ -23,11 +23,11 @@ char* string_copy(char* s) {
 string_sub("hello", 1, -1) == "ello"
 */
 char* string_sub(char* s, int start, int len) {
-    char* newstr = malloc(start + len + 1);
-    newstr[start+len] = '\0';
     if (len < 0) {
         len = strlen(s) - start + (len+1);
     }
+    char* newstr = malloc(len + 1);
+    newstr[start+len] = '\0';
     memcpy(newstr, s+start, len);
     return newstr;
 }
