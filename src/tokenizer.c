@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <string.h>
 #include <captain.h>
 #include <gc.h>
 
@@ -10,6 +11,8 @@
 
 #if INTERFACE
 
+#include <stdbool.h>
+
 typedef enum {
     TokenOpenParen,
     TokenCloseParen,
@@ -18,6 +21,7 @@ typedef enum {
     TokenOpenBraces,
     TokenCloseBraces,
 
+    TokenComma,
     TokenColon,
     TokenSemicolon,
     TokenAsterisk,
@@ -36,7 +40,9 @@ typedef struct {
 } Token;
 
 typedef struct {
+    char* start;
     char* at;
+    int length;
 } Tokenizer;
 
 typedef struct {
@@ -48,8 +54,18 @@ typedef struct {
 
 Tokenizer* create_tokenizer(char* s) {
     Tokenizer* tokenizer = malloc(sizeof(Tokenizer));
+    tokenizer->start = s;
     tokenizer->at = s;
+    tokenizer->length = strlen(s);
     return tokenizer;
+}
+
+bool is_tokenizer_eof(Tokenizer* tokenizer) {
+    if (tokenizer->at - tokenizer->start >= tokenizer->length) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool is_endofline(char c) {
@@ -84,62 +100,64 @@ void skip_garbage_token(Tokenizer* tokenizer) {
             {
                 tokenizer->at++;
             }
+        } else {
+            break;
         }
     }
 }
 
 Token get_token(Tokenizer* tokenizer) {
+    if (is_tokenizer_eof(tokenizer)) {
+        Token token = {};
+        token.type = TokenEndOfStream;
+        token.text = NULL;
+        return token;
+    }
+
     skip_garbage_token(tokenizer);
 
     Token token = {};
     char c = tokenizer->at[0];
+    token.text = string_sub(tokenizer->at, 0, 1);
     tokenizer->at++;
     switch (c) {
         case '\0': {
             token.type = TokenEndOfStream;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
 
         case '(': {
             token.type = TokenOpenParen;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case ')': {
             token.type = TokenCloseParen;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case '[': {
             token.type = TokenOpenBracket;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case ']': {
             token.type = TokenCloseBracket;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case '{': {
             token.type = TokenOpenBraces;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case '}': {
             token.type = TokenCloseBraces;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
 
+        case ',': {
+            token.type = TokenComma;
+        } break;
         case ':': {
             token.type = TokenColon;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case ';': {
             token.type = TokenSemicolon;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
         case '*': {
             token.type = TokenAsterisk;
-            token.text = string_sub(tokenizer->at, 0, 1);
         } break;
 
         case '"': {
-            tokenizer->at++;
             char* start = tokenizer->at;
             int len = 0;
             while (tokenizer->at[0] && tokenizer->at[0] != '"') {
@@ -150,14 +168,15 @@ Token get_token(Tokenizer* tokenizer) {
                 tokenizer->at++;
                 len++;
             }
+            tokenizer->at++;
             token.type = TokenString;
             token.text = string_sub(start, 0, len);
         } break;
 
         default: {
             if (is_alpha(c)) {
-                char* start = tokenizer->at;
-                int len = 0;
+                char* start = tokenizer->at - 1;
+                int len = 1;
                 while (is_alpha(tokenizer->at[0]) || is_numeric(tokenizer->at[0]) || tokenizer->at[0] == '_') {
                     tokenizer->at++;
                     len++;
@@ -177,7 +196,7 @@ Token get_token(Tokenizer* tokenizer) {
                 token.type = TokenUnknown;
                 token.text = NULL;
             }
-        }
+        } break;
     }
 
     return token;
@@ -191,7 +210,7 @@ Tokens* create_tokens() {
 }
 
 void tokens_push_token(Tokens* tokens, Token token) {
-    tokens->tokens = realloc(tokens->tokens, tokens->length + 1);
+    tokens->tokens = realloc(tokens->tokens, (tokens->length + 1) * sizeof(Token));
     tokens->tokens[tokens->length] = token;
     tokens->length++;
 }

@@ -3,10 +3,21 @@
 #include <captain.h>
 #include <gc.h>
 
+#if INTERFACE
+#include <stdlib.h>
+#endif
+
 #define malloc GC_malloc
 #define realloc GC_realloc
 #define calloc(m, n) GC_malloc((m)*(n))
 #define free
+
+char* string_copy(char* s) {
+    char* newstr = malloc(strlen(s) + 1);
+    newstr[strlen(s)] = '\0';
+    strcpy(newstr, s);
+    return newstr;
+}
 
 /*
 string_sub("hello", 1, -1) == "ello"
