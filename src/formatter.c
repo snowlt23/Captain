@@ -108,6 +108,13 @@ Token token_numeric(char* n) {
     return token;
 }
 
+Token token_eos() {
+    Token token = {};
+    token.type = TokenEndOfStream;
+    token.text = NULL;
+    return token;
+}
+
 void inc_indent(FormatOption* formatopt) {
     formatopt->indent_num++;
 }

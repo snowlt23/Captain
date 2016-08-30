@@ -241,10 +241,33 @@ Tokens* create_tokens() {
     return tokens;
 }
 
+#if INTERFACE
+#define tokens_concat(...) \
+    tokens_concat_inside( \
+        (Tokens*[]){ __VA_ARGS__ }, \
+        sizeof((Tokens*[]){ __VA_ARGS__ }) / sizeof(Tokens*) \
+    )
+#endif
+
+Tokens* tokens_concat_inside(Tokens** list, size_t len) {
+    int newlen = 0;
+    for (int i = 0; i < len; i++) {
+        newlen += list[i]->length;
+    }
+    Tokens* tokens = create_tokens();
+    tokens->tokens = malloc(newlen * sizeof(Token));
+    int prev_pos = 0;
+    for (int i = 0; i < len; i++) {
+        for (int j = 0; j < list[i]->length; j++) {
+            tokens->tokens[prev_pos + j] = list[i]->tokens[j];
+        }
+        prev_pos += list[i]->length;
+    }
+    return tokens;
+}
+
 void tokens_push_token(Tokens* tokens, Token token) {
-    tokens->tokens = realloc(tokens->tokens, (tokens->length + 1) * sizeof(Token));
-    tokens->tokens[tokens->length] = token;
-    tokens->length++;
+    array_push(tokens->tokens, tokens->length, Token, token);
 }
 
 void tokens_print(Tokens* tokens) {
@@ -263,8 +286,22 @@ Token tokens_get_next(Tokens* tokens) {
     Token token = tokens->tokens[tokens->pos];
     if (tokens->pos < tokens->length-1) {
         tokens->pos++;
+        return token;
+    } else {
+        return token_eos();
     }
-    return token;
+}
+
+Token tokens_get(Tokens* tokens) {
+    return tokens->tokens[tokens->pos];
+}
+
+bool is_tokens_end(Tokens* tokens) {
+    if (tokens->pos < tokens->length) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
 Tokens* parse_string(char* s) {
