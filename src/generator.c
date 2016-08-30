@@ -88,12 +88,8 @@ Tokens* generator_exec(Generator* generator, Tokens* tokens) {
                 break;
             } else {
                 Token next = tokens_get(tokens);
-                if (next.type == TokenEndOfStream) {
-                    break;
-                } else {
-                    tokens_push_token(ret, next);
-                    tokens->pos++;
-                }
+                tokens_push_token(ret, next);
+                tokens_next(tokens);
             }
         } else {
             ret = tokens_concat(ret, evaluated);
@@ -102,7 +98,17 @@ Tokens* generator_exec(Generator* generator, Tokens* tokens) {
     return ret;
 }
 
+Tokens* replace_captiain_test(Tokens* source) {
+    tokens_next(source);
+    return TOKENS(token_ident("replaced_test"));
+}
+
+void register_std_generator(Generator* generator) {
+    register_generator(generator, token_ident("CAPTAIN_TEST"), &replace_captiain_test);
+}
+
 Tokens* meta_generate(Tokens* tokens) {
     Generator* generator = create_generator();
+    register_std_generator(generator);
     return generator_exec(generator, tokens);
 }

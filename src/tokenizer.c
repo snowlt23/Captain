@@ -263,6 +263,7 @@ Tokens* tokens_concat_inside(Tokens** list, size_t len) {
         }
         prev_pos += list[i]->length;
     }
+    tokens->length = newlen;
     return tokens;
 }
 
@@ -276,24 +277,24 @@ void tokens_print(Tokens* tokens) {
     }
 }
 
-Token tokens_prev(Tokens* tokens) {
+void tokens_prev(Tokens* tokens) {
     if (0 < tokens->pos) {
         tokens->pos--;
     }
 }
 
-Token tokens_get_next(Tokens* tokens) {
-    Token token = tokens->tokens[tokens->pos];
-    if (tokens->pos < tokens->length-1) {
+void tokens_next(Tokens* tokens) {
+    if (tokens->pos < tokens->length) {
         tokens->pos++;
-        return token;
-    } else {
-        return token_eos();
     }
 }
 
 Token tokens_get(Tokens* tokens) {
-    return tokens->tokens[tokens->pos];
+    if (tokens->pos < tokens->length) {
+        return tokens->tokens[tokens->pos];
+    } else {
+        return token_eos();
+    }
 }
 
 bool is_tokens_end(Tokens* tokens) {

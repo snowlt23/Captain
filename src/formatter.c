@@ -87,7 +87,7 @@ Token token_asterisk() {
     return token;
 }
 
-Token token_identifier(char* ident) {
+Token token_ident(char* ident) {
     Token token = {};
     token.type = TokenIdentifier;
     token.text = ident;
