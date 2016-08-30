@@ -24,11 +24,12 @@ typedef enum {
     TokenComma,
     TokenColon,
     TokenSemicolon,
-    TokenAsterisk,
 
     TokenIdentifier,
+    TokenChar,
     TokenString,
     TokenNumeric,
+    TokenOperator,
 
     TokenEndOfStream,
     TokenUnknown,
@@ -52,6 +53,54 @@ typedef struct {
 } Tokens;
 
 #endif
+
+char* g_operators[] = {
+    ".",
+    "->",
+
+    "++",
+    "--",
+
+    "+=",
+    "-=",
+    "*=",
+    "/=",
+    "%=",
+    "<<=",
+    ">>=",
+    "&=",
+    "^=",
+    "|=",
+
+    "&&"
+    "&",
+    "||",
+    "|",
+
+    "*",
+    "+",
+    "-",
+    "~",
+    "!",
+    "*",
+    "/",
+    "%",
+    "^",
+
+    "<<",
+    ">>",
+    "<=",
+    "<",
+    ">="
+    ">",
+
+    "==",
+    "!=",
+
+    "?",
+    "=",
+};
+int g_operators_length = sizeof(g_operators) / sizeof(char*);
 
 Tokenizer* create_tokenizer(char* s) {
     Tokenizer* tokenizer = malloc(sizeof(Tokenizer));
@@ -117,10 +166,23 @@ Token get_token(Tokenizer* tokenizer) {
 
     skip_garbage_token(tokenizer);
 
+    for (int i = 0; i < g_operators_length; i++) {
+        int oplen = strlen(g_operators[i]);
+        char* target = string_sub(tokenizer->at, 0, oplen);
+        if (strcmp(g_operators[i], target) == 0) {
+            tokenizer->at += oplen;
+            Token token = {};
+            token.type = TokenOperator;
+            token.text = target;
+            return token;
+        }
+    }
+
     Token token = {};
     char c = tokenizer->at[0];
     token.text = string_sub(tokenizer->at, 0, 1);
     tokenizer->at++;
+
     switch (c) {
         case '\0': {
             token.type = TokenEndOfStream;
@@ -154,10 +216,19 @@ Token get_token(Tokenizer* tokenizer) {
         case ';': {
             token.type = TokenSemicolon;
         } break;
-        case '*': {
-            token.type = TokenAsterisk;
-        } break;
 
+        case '\'': {
+            char* s = string_sub(tokenizer->at, 0, 1);
+            tokenizer->at++;
+            if (tokenizer->at[0] == '\'') {
+                tokenizer->at++;
+                token.type = TokenChar;
+                token.text = s;
+            } else {
+                token.type = TokenUnknown;
+                token.text = NULL;
+            }
+        } break;
         case '"': {
             char* s = "";
             while (tokenizer->at[0] && tokenizer->at[0] != '"') {

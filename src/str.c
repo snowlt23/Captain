@@ -12,6 +12,13 @@
 #define calloc(m, n) GC_malloc((m)*(n))
 #define free
 
+char* string_from_char(char c) {
+    char* s = malloc(2);
+    s[0] = c;
+    s[1] = '\0';
+    return s;
+}
+
 char* string_copy(char* s) {
     char* newstr = malloc(strlen(s) + 1);
     newstr[strlen(s)] = '\0';

@@ -80,17 +80,17 @@ Token token_semicolon() {
     return token;
 }
 
-Token token_asterisk() {
-    Token token = {};
-    token.type = TokenAsterisk;
-    token.text = "*";
-    return token;
-}
-
 Token token_ident(char* ident) {
     Token token = {};
     token.type = TokenIdentifier;
     token.text = ident;
+    return token;
+}
+
+Token token_char(char* s) {
+    Token token = {};
+    token.type = TokenChar;
+    token.text = s;
     return token;
 }
 
@@ -108,9 +108,23 @@ Token token_numeric(char* n) {
     return token;
 }
 
+Token token_operator(char* op) {
+    Token token = {};
+    token.type = TokenOperator;
+    token.text = op;
+    return token;
+}
+
 Token token_eos() {
     Token token = {};
     token.type = TokenEndOfStream;
+    token.text = NULL;
+    return token;
+}
+
+Token token_unknown() {
+    Token token = {};
+    token.type = TokenUnknown;
     token.text = NULL;
     return token;
 }
@@ -141,6 +155,7 @@ FormatOption create_formatopt(bool compress) {
 
 char* format_tokens(FormatOption formatopt, Tokens* tokens) {
     char* output = "";
+    Token prev_token = token_unknown();
     for (int i = 0; i < tokens->length; i++) {
         Token token = tokens->tokens[i];
         switch (token.type) {
@@ -193,12 +208,16 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
                     output = string_concat(output, ";\n", generate_indent(formatopt));
                 }
             } break;
-            case TokenAsterisk: {
-                output = string_concat(output, "*");
-            } break;
 
             case TokenIdentifier: {
-                output = string_concat(output, token.text, " ");
+                if (prev_token.type == TokenIdentifier) {
+                    output = string_concat(output, " ", token.text);
+                } else {
+                    output = string_concat(output, token.text);
+                }
+            } break;
+            case TokenChar: {
+                output = string_concat(output, "'", token.text, "'");
             } break;
             case TokenString: {
                 output = string_concat(output, "\"", token.text, "\"");
@@ -206,7 +225,15 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
             case TokenNumeric: {
                 output = string_concat(output, token.text);
             } break;
+            case TokenOperator: {
+                if (formatopt.compress) {
+                    output = string_concat(output, token.text);
+                } else {
+                    output = string_concat(output, " ", token.text, " ");
+                }
+            } break;
         }
+        prev_token = token;
     }
     return output;
 }
