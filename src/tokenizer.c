@@ -47,6 +47,7 @@ typedef struct {
 
 typedef struct {
     Token* tokens;
+    int pos;
     int length;
 } Tokens;
 
@@ -209,9 +210,33 @@ Token get_token(Tokenizer* tokenizer) {
     return token;
 }
 
+/*
+    Tokens
+*/
+
+#if INTERFACE
+#define TOKENS(...) \
+    create_tokens_list( \
+        (Token[]){ __VA_ARGS__ }, \
+        sizeof((Token[]){ __VA_ARGS__ }) / sizeof(Token) \
+    )
+#endif
+
+Tokens* create_tokens_list(Token* list, size_t len) {
+    Tokens* tokens = malloc(sizeof(Tokens));
+    tokens->tokens = malloc(len * sizeof(Token));
+    for (int i = 0; i < len; i++) {
+        tokens->tokens[i] = list[i];
+    }
+    tokens->pos = 0;
+    tokens->length = len;
+    return tokens;
+}
+
 Tokens* create_tokens() {
     Tokens* tokens = malloc(sizeof(Tokens));
     tokens->tokens = NULL;
+    tokens->pos = 0;
     tokens->length = 0;
     return tokens;
 }
@@ -226,6 +251,20 @@ void tokens_print(Tokens* tokens) {
     for (int i = 0; i < tokens->length; i++) {
         printf("%s\n", tokens->tokens[i].text);
     }
+}
+
+Token tokens_prev(Tokens* tokens) {
+    if (0 < tokens->pos) {
+        tokens->pos--;
+    }
+}
+
+Token tokens_get_next(Tokens* tokens) {
+    Token token = tokens->tokens[tokens->pos];
+    if (tokens->pos < tokens->length-1) {
+        tokens->pos++;
+    }
+    return token;
 }
 
 Tokens* parse_string(char* s) {
