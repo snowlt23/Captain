@@ -31,6 +31,8 @@ typedef enum {
     TokenNumeric,
     TokenOperator,
 
+    TokenNil,
+
     TokenEndOfStream,
     TokenUnknown,
 } TokenType;
@@ -339,7 +341,7 @@ Tokens* tokens_concat_inside(Tokens** list, size_t len) {
 }
 
 void tokens_push_token(Tokens* tokens, Token token) {
-    array_push(tokens->tokens, tokens->length, Token, token);
+    array_push_single(tokens->tokens, tokens->length, Token, token);
 }
 
 void tokens_print(Tokens* tokens) {
@@ -373,6 +375,15 @@ bool is_tokens_end(Tokens* tokens) {
         return false;
     } else {
         return true;
+    }
+}
+
+bool tokens_expect(Tokens* tokens, Token token) {
+    if (token_equal(tokens_get(tokens), token)) {
+        tokens_next(tokens);
+        return true;
+    } else {
+        return false;
     }
 }
 

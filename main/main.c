@@ -3,7 +3,8 @@
 #include <captain.h>
 
 int main(int argc, char const *argv[]) {
-    char* source = "int main() { char* a = 'c'; printf(\"%d\n\", 1); CAPTAIN_TEST(); }";
+    // char* source = "int main() { char* a = 'c'; printf(\"%d\n\", 1); CAPTAIN_TEST(); }";
+    char* source = file_read("example/enum_printer.c");
     Tokens* tokens = parse_string(source);
     // tokens_print(tokens);
     FormatOption formatopt = create_formatopt(false);

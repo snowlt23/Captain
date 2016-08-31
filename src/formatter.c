@@ -15,6 +15,7 @@ typedef struct {
     int indent_num;
     char* indent_str;
 } FormatOption;
+
 #endif
 
 Token token_openparen() {
@@ -115,6 +116,13 @@ Token token_operator(char* op) {
     return token;
 }
 
+Token token_nil() {
+    Token token = {};
+    token.type = TokenNil;
+    token.text = NULL;
+    return token;
+}
+
 Token token_eos() {
     Token token = {};
     token.type = TokenEndOfStream;
@@ -184,10 +192,12 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
                     dec_indent(&formatopt);
                     output = string_concat(output, "}");
                 } else {
-                    int indent_len = strlen(generate_indent(formatopt));
+                    if (prev_token.type == TokenSemicolon) {
+                        int indent_len = strlen(generate_indent(formatopt));
+                        output = string_sub(output, 0, -indent_len - 1);
+                    }
                     dec_indent(&formatopt);
-                    output = string_sub(output, 0, -indent_len - 1);
-                    output = string_concat(output, "}\n");
+                    output = string_concat(output, generate_indent(formatopt), "}\n");
                 }
             } break;
 
@@ -205,7 +215,12 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
                 if (formatopt.compress) {
                     output = string_concat(output, ";");
                 } else {
-                    output = string_concat(output, ";\n", generate_indent(formatopt));
+                    if (prev_token.type == TokenCloseBraces) {
+                        output = string_sub(output, 0, -2);
+                        output = string_concat(output, ";\n");
+                    } else {
+                        output = string_concat(output, ";\n", generate_indent(formatopt));
+                    }
                 }
             } break;
 

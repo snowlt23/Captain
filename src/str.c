@@ -63,6 +63,5 @@ char* string_concat_inside(char** list, size_t len) {
         strcpy(newstr + prevlen, list[i]);
         prevlen += strlen(list[i]);
     }
-
     return newstr;
 }

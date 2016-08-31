@@ -1,6 +1,13 @@
 
+#include <stdio.h>
 #include <string.h>
 #include <captain.h>
+#include <gc.h>
+
+#define malloc GC_malloc
+#define realloc GC_realloc
+#define calloc(m, n) GC_malloc((m)*(n))
+#define free
 
 #if INTERFACE
 
@@ -39,8 +46,8 @@ Generator* create_generator() {
 
 void register_generator(Generator* generator, Token hook_token, GeneratorFn fn) {
     array_push(generator->hook_tokens, generator->length, Token, hook_token);
-    generator->length--;
     array_push(generator->generators, generator->length, GeneratorFn, fn);
+    array_push_finish(generator->length);
 }
 
 int get_hook(Generator* generator, Token token) {
@@ -103,8 +110,27 @@ Tokens* replace_captiain_test(Tokens* source) {
     return TOKENS(token_ident("replaced_test"));
 }
 
+Tokens* printable_enum(Tokens* source) {
+    tokens_next(source);
+    char* s = "";
+    ParsedEnum* penum = penum_parse(source);
+    if (penum == NULL) {
+        return NULL;
+    }
+    s = string_concat(s, penum_format(penum));
+    s = string_concat(s, "void ", penum->name.text, "_print", "(enum ", penum->name.text, " value) {");
+    s = string_concat(s, "switch (value) {");
+    for (int i = 0; i < penum->length; i++) {
+        Token member = penum->members[i];
+        s = string_concat(s, "case ", member.text, ":", "{", "printf(\"", member.text, "\");", "} break;");
+    }
+    s = string_concat(s, "}}");
+    return parse_string(s);
+}
+
 void register_std_generator(Generator* generator) {
     register_generator(generator, token_ident("CAPTAIN_TEST"), &replace_captiain_test);
+    register_generator(generator, token_ident("printable"), &printable_enum);
 }
 
 Tokens* meta_generate(Tokens* tokens) {
