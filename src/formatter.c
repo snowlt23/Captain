@@ -123,6 +123,20 @@ Token token_nil() {
     return token;
 }
 
+Token token_force(char* s) {
+    Token token = {};
+    token.type = TokenForce;
+    token.text = s;
+    return token;
+}
+
+Token token_macro(char* s) {
+    Token token = {};
+    token.type = TokenMacro;
+    token.text = s;
+    return token;
+}
+
 Token token_eos() {
     Token token = {};
     token.type = TokenEndOfStream;
@@ -222,6 +236,13 @@ char* format_tokens(FormatOption formatopt, Tokens* tokens) {
                         output = string_concat(output, ";\n", generate_indent(formatopt));
                     }
                 }
+            } break;
+
+            case TokenForce: {
+                output = string_concat(output, token.text);
+            } break;
+            case TokenMacro: {
+                output = string_concat(output, "#", token.text, "\n");
             } break;
 
             case TokenIdentifier: {

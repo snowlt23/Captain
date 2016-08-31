@@ -110,14 +110,13 @@ Tokens* replace_captiain_test(Tokens* source) {
     return TOKENS(token_ident("replaced_test"));
 }
 
-Tokens* printable_enum(Tokens* source) {
+Tokens* printable_enum_generator(Tokens* source) {
     tokens_next(source);
     char* s = "";
     ParsedEnum* penum = penum_parse(source);
     if (penum == NULL) {
         return NULL;
     }
-    s = string_concat(s, penum_format(penum));
     s = string_concat(s, "void ", penum->name.text, "_print", "(enum ", penum->name.text, " value) {");
     s = string_concat(s, "switch (value) {");
     for (int i = 0; i < penum->length; i++) {
@@ -125,12 +124,18 @@ Tokens* printable_enum(Tokens* source) {
         s = string_concat(s, "case ", member.text, ":", "{", "printf(\"", member.text, "\");", "} break;");
     }
     s = string_concat(s, "}}");
-    return parse_string(s);
+    return tokens_concat(penum_to_tokens(penum), parse_string(s));
+}
+
+Tokens* annotation_generator(Tokens* source) {
+    tokens_next(source);
+    return create_tokens();
 }
 
 void register_std_generator(Generator* generator) {
     register_generator(generator, token_ident("CAPTAIN_TEST"), &replace_captiain_test);
-    register_generator(generator, token_ident("printable"), &printable_enum);
+    register_generator(generator, token_ident("printable"), &printable_enum_generator);
+    register_generator(generator, token_operator("@"), &annotation_generator);
 }
 
 Tokens* meta_generate(Tokens* tokens) {

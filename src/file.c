@@ -3,6 +3,10 @@
 #include <captain.h>
 #include <gc.h>
 
+#if INTERFACE
+#include <stdbool.h>
+#endif
+
 #define malloc GC_malloc
 #define realloc GC_realloc
 #define calloc(m, n) GC_malloc((m)*(n))
@@ -26,5 +30,16 @@ char* file_read(char* filename) {
             inteval_num++;
         }
     }
+    fclose(fp);
     return s;
+}
+
+bool file_write(char* filename, char* s) {
+    FILE* fp = fopen(filename, "w");
+    if (fp == NULL) {
+        return false;
+    }
+    fputs(s, fp);
+    fclose(fp);
+    return true;
 }

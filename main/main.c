@@ -17,6 +17,7 @@ int main(int argc, char const *argv[]) {
     Tokens* gened_tokens = meta_generate(tokens);
     char* gened_output = format_tokens(formatopt, gened_tokens);
     printf("%s\n", gened_output);
+    file_write("dist/enum_printer.genrated.c", gened_output);
 
     return 0;
 }

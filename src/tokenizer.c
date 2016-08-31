@@ -32,6 +32,9 @@ typedef enum {
     TokenOperator,
 
     TokenNil,
+    TokenForce,
+
+    TokenMacro,
 
     TokenEndOfStream,
     TokenUnknown,
@@ -59,6 +62,7 @@ typedef struct {
 char* g_operators[] = {
     ".",
     "->",
+    "=>",
 
     "++",
     "--",
@@ -101,6 +105,8 @@ char* g_operators[] = {
 
     "?",
     "=",
+
+    "@",
 };
 int g_operators_length = sizeof(g_operators) / sizeof(char*);
 
@@ -217,6 +223,17 @@ Token get_token(Tokenizer* tokenizer) {
         } break;
         case ';': {
             token.type = TokenSemicolon;
+        } break;
+
+        case '#': {
+            char* s = "";
+            while (tokenizer->at[0] && tokenizer->at[0] != '\n') {
+                s = string_concat(s, string_sub(tokenizer->at, 0, 1));
+                tokenizer->at++;
+            }
+            tokenizer->at++;
+            token.type = TokenMacro;
+            token.text = s;
         } break;
 
         case '\'': {

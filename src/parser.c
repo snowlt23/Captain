@@ -70,22 +70,26 @@ ParsedEnum* penum_parse(Tokens* source) {
     return penum;
 }
 
-char* penum_format(ParsedEnum* penum) {
-    char* s = "";
-    s = string_concat(s, "enum ");
-    if (penum->name.type != TokenNil) {
-        s = string_concat(s, penum->name.text);
-    }
-    s = string_concat(s, "{");
+Tokens* penum_to_tokens(ParsedEnum* penum) {
+    char* prefix = string_concat(penum->name.text, "_");
+    Token macro = token_macro(string_concat("define ", penum->name.text, "(name) ", prefix, " ## name"));
+
+    Tokens* start = TOKENS(token_ident("enum"), penum->name, token_openbraces());
+
+    Tokens* members = create_tokens();
     for (int i = 0; i < penum->length; i++) {
         Token member = penum->members[i];
-        s = string_concat(s, member.text);
         Token value = penum->values[i];
-        if (value.type != TokenNil) {
-            s = string_concat(s, "=", value.text);
+        if (value.type == TokenNil) {
+            tokens_push_token(members, member);
+        } else {
+            tokens_push_token(members, token_operator("="));
+            tokens_push_token(members, value);
         }
-        s = string_concat(s, ",");
+        tokens_push_token(members, token_comma());
     }
-    s = string_concat(s, "};");
-    return s;
+
+    Tokens* end = TOKENS(token_closebraces(), token_semicolon());
+
+    return tokens_concat(TOKENS(macro), start, members, end);
 }
