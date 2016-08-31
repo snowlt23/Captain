@@ -70,7 +70,7 @@ ParsedEnum* penum_parse(Tokens* source) {
     return penum;
 }
 
-Tokens* penum_to_tokens(ParsedEnum* penum) {
+Source* penum_to_source(ParsedEnum* penum) {
     char* prefix = string_concat(penum->name.text, "_");
     Token macro = token_macro(string_concat("define ", penum->name.text, "(name) ", prefix, " ## name"));
 
@@ -91,5 +91,5 @@ Tokens* penum_to_tokens(ParsedEnum* penum) {
 
     Tokens* end = TOKENS(token_closebraces(), token_semicolon());
 
-    return tokens_concat(TOKENS(macro), start, members, end);
+    return create_source(create_tokens(), create_tokens(), tokens_concat(TOKENS(macro), start, members, end));
 }

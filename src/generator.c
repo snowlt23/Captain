@@ -11,13 +11,14 @@
 
 #if INTERFACE
 
-typedef Tokens* (*GeneratorFn)(Tokens* source);
+typedef Source* (*GeneratorFn)(Tokens* input);
 
 typedef struct {
     Token* hook_tokens;
     GeneratorFn* generators;
     int length;
 } Generator;
+
 #endif
 
 bool expect_token(Token token, char* s) {
@@ -67,50 +68,51 @@ bool is_hook(int hook) {
     }
 }
 
-Tokens* call_generator(Generator* generator, Tokens* tokens, int index) {
+Source* call_generator(Generator* generator, Tokens* tokens, int index) {
     return generator->generators[index](tokens);
 }
 
-Tokens* generator_eval(Generator* generator, Tokens* tokens) {
+Source* generator_eval(Generator* generator, Tokens* tokens) {
     Token token = tokens_get(tokens);
     int hook = get_hook(generator, token);
     if (is_hook(hook)) {
-        Tokens* called = call_generator(generator, tokens, hook);
+        Source* called = call_generator(generator, tokens, hook);
         if (called == NULL) {
             return NULL;
         } else {
-            return generator_exec(generator, called);
+            Source* s = generator_exec(generator, called->source);
+            return create_source(s->source, called->toplevel, called->header);
         }
     } else {
         return NULL;
     }
 }
 
-Tokens* generator_exec(Generator* generator, Tokens* tokens) {
-    Tokens* ret = create_tokens();
+Source* generator_exec(Generator* generator, Tokens* tokens) {
+    Source* ret = create_source_empty();
     for (;;) {
-        Tokens* evaluated = generator_eval(generator, tokens);
+        Source* evaluated = generator_eval(generator, tokens);
         if (evaluated == NULL) {
             if (is_tokens_end(tokens)) {
                 break;
             } else {
                 Token next = tokens_get(tokens);
-                tokens_push_token(ret, next);
+                tokens_push_token(ret->source, next);
                 tokens_next(tokens);
             }
         } else {
-            ret = tokens_concat(ret, evaluated);
+            ret = source_concat(ret, evaluated);
         }
     }
     return ret;
 }
 
-Tokens* replace_captiain_test(Tokens* source) {
+Source* replace_captiain_test(Tokens* source) {
     tokens_next(source);
-    return TOKENS(token_ident("replaced_test"));
+    return create_source(TOKENS(token_ident("replaced_test")), create_tokens(), create_tokens());
 }
 
-Tokens* printable_enum_generator(Tokens* source) {
+Source* printable_enum_generator(Tokens* source) {
     tokens_next(source);
     char* s = "";
     ParsedEnum* penum = penum_parse(source);
@@ -124,21 +126,25 @@ Tokens* printable_enum_generator(Tokens* source) {
         s = string_concat(s, "case ", member.text, ":", "{", "printf(\"", member.text, "\");", "} break;");
     }
     s = string_concat(s, "}}");
-    return tokens_concat(penum_to_tokens(penum), parse_string(s));
+    return source_concat(penum_to_source(penum), create_source(parse_string(s), create_tokens(), create_tokens()));
 }
 
-Tokens* annotation_generator(Tokens* source) {
+Source* annotation_generator(Tokens* source) {
     tokens_next(source);
-    return create_tokens();
+    return create_source_empty();
 }
+
+// Source* variadic_generator(Tokens* source) {
+// }
 
 void register_std_generator(Generator* generator) {
     register_generator(generator, token_ident("CAPTAIN_TEST"), &replace_captiain_test);
     register_generator(generator, token_ident("printable"), &printable_enum_generator);
     register_generator(generator, token_operator("@"), &annotation_generator);
+    // register_generator(generator, token_ident("variadic"), &variadic_generator);
 }
 
-Tokens* meta_generate(Tokens* tokens) {
+Source* meta_generate(Tokens* tokens) {
     Generator* generator = create_generator();
     register_std_generator(generator);
     return generator_exec(generator, tokens);

@@ -14,10 +14,13 @@ int main(int argc, char const *argv[]) {
     // char* tokensstr = format_tokens(formatopt, TOKENS(token_ident("add"), token_openparen(), token_numeric("1"), token_comma(), token_numeric("2"), token_closeparen()));
     // printf("%s\n", tokensstr);
 
-    Tokens* gened_tokens = meta_generate(tokens);
-    char* gened_output = format_tokens(formatopt, gened_tokens);
-    printf("%s\n", gened_output);
-    file_write("dist/enum_printer.genrated.c", gened_output);
+    // Source* srca = create_source_empty();
+    // Source* srcb = create_source_empty();
+    // source_concat(srca, srcb);
+
+    Source* gen_source = meta_generate(tokens);
+    source_print(gen_source, formatopt);
+    source_write(gen_source, formatopt, "dist", "enum_printer.generated");
 
     return 0;
 }
